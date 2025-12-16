@@ -17,24 +17,51 @@
 
     <header class="app-header">
         <div class="logo">QuizClone</div>
-        <button id="btn-import-nav" class="btn-secondary" hidden>Importar</button>
+        <nav class="nav-links">
+            <button id="btn-library-nav" class="btn-text" hidden>Biblioteca</button>
+            <button id="btn-import-nav" class="btn-secondary">Crear Ficha</button>
+        </nav>
     </header>
 
     <main class="app-container">
+        <!-- Library Screen -->
+        <section id="library-screen" class="screen active">
+            <div class="hero icon-hero">
+                <div class="hero-icon">📚</div>
+                <h1>Tu Biblioteca</h1>
+                <p>Selecciona un mazo para empezar a estudiar.</p>
+
+            </div>
+            <div id="decks-grid" class="decks-grid">
+                <!-- Decks will be injected here -->
+                <div class="empty-state">
+                    <p>No tienes mazos guardados aún.</p>
+                    <button id="btn-create-first" class="btn-primary">Crear mi primer mazo</button>
+                </div>
+            </div>
+        </section>
+
         <!-- Import Screen -->
-        <section id="import-screen" class="screen active">
+        <section id="import-screen" class="screen">
             <div class="hero">
-                <h1>Domina tus estudios</h1>
-                <p>Importa tus flashcards y empieza a practicar al estilo Quizlet.</p>
+                <h1>Crear nuevo mazo</h1>
+                <p>Importa tus flashcards para empezar.</p>
             </div>
 
             <div class="import-card">
-                <label for="import-text" class="input-label">Pega tus fichas (Palabra, Definición)</label>
-                <textarea id="import-text" placeholder="Manzana, Fruta roja&#10;Perro, Animal doméstico"
-                    spellcheck="false"></textarea>
+                <div class="input-group">
+                    <label for="deck-title" class="input-label">Título del Mazo</label>
+                    <input type="text" id="deck-title" placeholder="Ej: Inglés - Verbos Irregulares" class="text-input">
+                </div>
+
+                <div class="input-group">
+                    <label for="import-text" class="input-label">Pega tus fichas (Palabra, Definición)</label>
+                    <textarea id="import-text" placeholder="Manzana, Fruta roja&#10;Perro, Animal doméstico"
+                        spellcheck="false"></textarea>
+                </div>
+
                 <div class="import-actions">
-                    <button id="btn-start" class="btn-primary">Empezar a estudiar</button>
-                    <!-- <button id="btn-demo" class="btn-text">Ver Demo</button> -->
+                    <button id="btn-save" class="btn-primary">Guardar y Estudiar</button>
                 </div>
             </div>
         </section>
@@ -68,22 +95,28 @@
                 </div>
             </div>
 
-            <div class="controls">
-                <button id="btn-unknown" class="btn-control btn-unknown">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M18 6 6 18" />
-                        <path d="m6 6 12 12" />
-                    </svg>
-                    <span>No lo sé</span>
-                </button>
-                <button id="btn-known" class="btn-control btn-known">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                        stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M20 6 9 17l-5-5" />
-                    </svg>
-                    <span>Lo sé</span>
-                </button>
+            <div class="controls-wrapper">
+                <div id="counter-unknown-val" class="counter-display text-unknown">0</div>
+
+                <div class="controls">
+                    <button id="btn-unknown" class="btn-control btn-unknown">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 6 6 18" />
+                            <path d="m6 6 12 12" />
+                        </svg>
+                        <span>No lo sé</span>
+                    </button>
+                    <button id="btn-known" class="btn-control btn-known">
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                        <span>Lo sé</span>
+                    </button>
+                </div>
+
+                <div id="counter-known-val" class="counter-display text-known">0</div>
             </div>
         </section>
 
@@ -111,6 +144,7 @@
         </section>
     </main>
 
+    <script src="data.js"></script>
     <script src="script.js"></script>
 </body>
 
