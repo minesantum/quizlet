@@ -1,10 +1,10 @@
-➕ Mis redes
-Mis cursos: https://DonKolia.com/
-Discord: https://dsc.gg/DonKolia
-Twitter: https://twitter.com/DonKolia
-TikTok: https://www.tiktok.com/@DonKolia
-Instagram: https://www.instagram.com/DonKolia_
-Twitch: https://www.twitch.tv/DonKolia
+# ➕ Mis redes
+*   **Mis cursos:** [DonKolia.com](https://DonKolia.com/)
+*   **Discord:** [dsc.gg/DonKolia](https://dsc.gg/DonKolia)
+*   **Twitter:** [@DonKolia](https://twitter.com/DonKolia)
+*   **TikTok:** [@DonKolia](https://www.tiktok.com/@DonKolia)
+*   **Instagram:** [@DonKolia_](https://www.instagram.com/DonKolia_)
+*   **Twitch:** [DonKolia](https://www.twitch.tv/DonKolia)
 
 # 📚 Flashcards Gratis (Clon de Quizlet)
 
