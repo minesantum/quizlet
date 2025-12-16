@@ -34,9 +34,7 @@ const elements = {
     btnUnknown: document.getElementById('btn-unknown'),
     statKnown: document.getElementById('stat-known'),
     statUnknown: document.getElementById('stat-unknown'),
-    btnRestartUnknown: document.getElementById('btn-restart-unknown'),
-    btnRestartAll: document.getElementById('btn-restart-all'),
-    btnNewImport: document.getElementById('btn-new-import')
+    btnRestartAll: document.getElementById('btn-restart-all')
 };
 
 // State
@@ -66,11 +64,7 @@ elements.flashcard.addEventListener('click', handleFlip);
 elements.btnKnown.addEventListener('click', () => handleChoice(true));
 elements.btnUnknown.addEventListener('click', () => handleChoice(false));
 elements.btnRestartAll.addEventListener('click', () => restart('all'));
-elements.btnRestartUnknown.addEventListener('click', () => restart('unknown'));
-elements.btnNewImport.addEventListener('click', () => {
-    resetImportScreen();
-    showScreen('import');
-});
+
 elements.btnImportNav.addEventListener('click', () => {
     resetImportScreen();
     showScreen('import');
@@ -586,32 +580,26 @@ function restart(mode) {
 }
 
 function updateProgress() {
-    // Current count is: Total Initial - (Queue + NextRound) ? 
-    // Or just simple 1/10 stepping?
-    // Let's show Remaining.
-    const remaining = queue.length + (currentCard ? 1 : 0);
-    // This is tricky with loops.
-    // Let's just show size of THIS round.
-    // Actually typically: "Card X of Y".
-    const totalInRound = queue.length + (currentCard ? 1 : 0) + nextRoundQueue.length + (knownCount - (allCards.length - (queue.length + nextRoundQueue.length + (currentCard ? 1 : 0))));
-    // Allow it to depend on the queue size at start of round?
-    // Simplify: Just show queue length.
+    if (!currentDeckId) return;
+    const decks = getDecks();
+    const deck = decks.find(d => d.id === currentDeckId);
+    if (!deck) return;
+
+    const kCount = deck.stats && deck.stats.knownIds ? deck.stats.knownIds.length : 0;
+    const uCount = deck.stats && deck.stats.unknownIds ? deck.stats.unknownIds.length : 0;
+
+    // Update Side Counters with persistent data
+    elements.counterKnownVal.innerText = kCount;
+    elements.counterUnknownVal.innerText = uCount;
+
+    // Remaining in session
     elements.currentCount.innerText = allCards.length - (queue.length + nextRoundQueue.length);
     elements.totalCount.innerText = allCards.length;
 
-    // Update Bar
+    // Update Bar (Global Mastery)
     const total = allCards.length;
-    // Current progress logic:
-    // Known Count (from persistence + session) / Total
-    // OR: Current Queue Position?
-    // Let's show "Mastery"
-    const percent = total > 0 ? (knownCount / total) * 100 : 0;
+    const percent = total > 0 ? (kCount / total) * 100 : 0;
     elements.progressBar.style.width = `${percent}%`;
-
-    // Update Side Counters
-    elements.counterKnownVal.innerText = knownCount;
-    // For unknown, we show the current "miss pile" for the next round
-    elements.counterUnknownVal.innerText = nextRoundQueue.length;
 }
 
 // Backup Logic
