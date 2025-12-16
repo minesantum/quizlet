@@ -1,0 +1,7 @@
+Quiero hacer una web, estilo quizlet.com, donde pueda importar mis flashcards de quizlet y que me permita practicarlos.
+Le importación será por medio de "palabra,definición" y luego que aparezcan en la pantalla de juego.
+Aparece la palabra y al darle click, aparece la definición. abajo dos botones, uno para "lo se" y otro para "no lo se".
+Al darle en no lo se, se guarda la palabra en una lista de palabras que no se sabe. Y se vuelve a preguntar al final
+Al darle en lo se, se guarda la palabra en una lista de palabras que se sabe. Y no se vuelve a preguntar.
+
+Ojea la web y su código fuente para ver como está hecha.

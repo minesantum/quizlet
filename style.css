@@ -1,0 +1,436 @@
+:root {
+    --primary: #4255ff;
+    --primary-hover: #3644cc;
+    --bg-color: #f6f7fb;
+    --card-bg: #ffffff;
+    --text-main: #282e3e;
+    --text-secondary: #586380;
+    --success: #23b26d;
+    --warning: #ffcd1f;
+    /* Quizlet uses yellow/orange, maybe reddish for "Don't know" logic in some apps, but user said "No lo se" */
+    --danger: #ff725b;
+    /* Using a soft red/orange for 'Don't know' */
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 16px rgba(48, 53, 69, 0.08);
+    /* Quizlet-ish shadow */
+    --shadow-lg: 0 8px 24px rgba(48, 53, 69, 0.12);
+    --radius-lg: 1.5rem;
+    --radius-md: 0.75rem;
+    --font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: var(--font-family);
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    line-height: 1.5;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* Prevent scrolling if possible, create app-like feel */
+}
+
+/* Header */
+.app-header {
+    background: var(--card-bg);
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    z-index: 10;
+}
+
+.logo {
+    font-weight: 800;
+    font-size: 1.5rem;
+    color: var(--primary);
+    letter-spacing: -0.5px;
+}
+
+/* Main Container */
+.app-container {
+    flex: 1;
+    position: relative;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    /* Center content vertically too */
+    padding: 2rem;
+}
+
+.screen {
+    display: none;
+    width: 100%;
+    max-width: 800px;
+    flex-direction: column;
+    align-items: center;
+    animation: fadeIn 0.4s ease forwards;
+}
+
+.screen.active {
+    display: flex;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Import Screen */
+.hero {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+.hero h1 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: var(--text-main);
+}
+
+.hero p {
+    color: var(--text-secondary);
+    font-size: 1.125rem;
+}
+
+.import-card {
+    background: var(--card-bg);
+    width: 100%;
+    padding: 2rem;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.input-label {
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+textarea {
+    width: 100%;
+    height: 300px;
+    border: 2px solid #e0e4ec;
+    border-radius: var(--radius-md);
+    padding: 1rem;
+    font-family: monospace;
+    font-size: 1rem;
+    resize: none;
+    transition: all 0.2s;
+    background: #fcfcfd;
+}
+
+textarea:focus {
+    border-color: var(--primary);
+    outline: none;
+    background: #fff;
+}
+
+.import-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+/* Buttons */
+button {
+    cursor: pointer;
+    font-family: var(--font-family);
+    border: none;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background-color: var(--primary);
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 1rem;
+    width: 100%;
+}
+
+.btn-primary:hover {
+    background-color: var(--primary-hover);
+    transform: translateY(-1px);
+}
+
+.btn-secondary {
+    background-color: transparent;
+    border: 2px solid #e0e4ec;
+    color: var(--text-main);
+    padding: 0.8rem 1.5rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    width: 100%;
+}
+
+.btn-secondary:hover {
+    border-color: var(--text-secondary);
+    background: #f9fafb;
+}
+
+.btn-text {
+    background: transparent;
+    color: var(--text-secondary);
+    padding: 1rem;
+    font-weight: 500;
+}
+
+.btn-text:hover {
+    color: var(--text-main);
+    text-decoration: underline;
+}
+
+/* Game Screen */
+.status-bar {
+    margin-bottom: 2rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+.flashcard-container {
+    width: 100%;
+    max-width: 700px;
+    height: 400px;
+    /* Fixed height for consistency */
+    perspective: 1000px;
+    margin-bottom: 2rem;
+}
+
+.flashcard {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    cursor: pointer;
+}
+
+.flashcard-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    transition: transform 0.6s cubic-bezier(0.4, 0.0, 0.2, 1);
+    transform-style: preserve-3d;
+    box-shadow: var(--shadow-md);
+    border-radius: var(--radius-lg);
+}
+
+.flashcard.flipped .flashcard-inner {
+    transform: rotateX(180deg);
+}
+
+.flashcard-front,
+.flashcard-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    background-color: var(--card-bg);
+    border-radius: var(--radius-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    flex-direction: column;
+}
+
+.flashcard-back {
+    transform: rotateX(180deg);
+}
+
+.card-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow-y: auto;
+    width: 100%;
+}
+
+.card-text {
+    font-size: 2rem;
+    font-weight: 500;
+    color: var(--text-main);
+    line-height: 1.4;
+    word-break: break-word;
+    /* Handle long words */
+}
+
+/* Font size adjustment logic might be needed in JS, but lets start large */
+
+.click-hint {
+    margin-top: auto;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    opacity: 0.6;
+    margin-bottom: 1rem;
+}
+
+.controls {
+    display: flex;
+    gap: 1.5rem;
+    width: 100%;
+    max-width: 500px;
+}
+
+.btn-control {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    border-radius: 50%;
+    /* Circle buttons? Or pills? Quizlet uses circles for swipe on mobile, pills on desktop. Let's use large pills or circles. */
+    border-radius: 3rem;
+    height: 4rem;
+    /* Pill shape */
+    gap: 0.5rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    background: var(--card-bg);
+    border: 2px solid #e0e4ec;
+    color: var(--text-secondary);
+    box-shadow: var(--shadow-sm);
+    flex-direction: row;
+    /* Icon + Text */
+}
+
+/* Specific button styles */
+.btn-unknown {
+    /* border-color: var(--danger); */
+    color: var(--danger);
+}
+
+.btn-unknown:hover {
+    background-color: #fff0ee;
+    border-color: var(--danger);
+}
+
+.btn-known {
+    /* border-color: var(--success); */
+    color: var(--success);
+}
+
+.btn-known:hover {
+    background-color: #edfcf4;
+    border-color: var(--success);
+}
+
+/* Result Screen */
+.result-card {
+    background: var(--card-bg);
+    padding: 3rem;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    text-align: center;
+    width: 100%;
+}
+
+.stats-container {
+    display: flex;
+    gap: 2rem;
+    margin: 2rem 0;
+    justify-content: center;
+}
+
+.stat-box {
+    flex: 1;
+    padding: 1.5rem;
+    border-radius: var(--radius-md);
+    background: #f8f9fa;
+}
+
+.stat-box.success {
+    background: #edfcf4;
+    color: var(--success);
+}
+
+.stat-box.warning {
+    background: #fff0ee;
+    color: var(--danger);
+}
+
+.stat-number {
+    display: block;
+    font-size: 3rem;
+    font-weight: 800;
+    margin-top: 0.5rem;
+}
+
+.result-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+/* Utility to hide/show */
+
+/* Card Animations */
+@keyframes slideOutRight {
+    to {
+        transform: translateX(120%) rotate(10deg);
+        opacity: 0;
+    }
+}
+
+@keyframes slideOutLeft {
+    to {
+        transform: translateX(-120%) rotate(-10deg);
+        opacity: 0;
+    }
+}
+
+.flashcard.slide-right {
+    animation: slideOutRight 0.3s ease forwards;
+}
+
+.flashcard.slide-left {
+    animation: slideOutLeft 0.3s ease forwards;
+}
+
+/* Progress bar specific */
+.progress-bar-container {
+    flex: 1;
+    max-width: 200px;
+    height: 8px;
+    background-color: #e0e4ec;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background-color: var(--primary);
+    width: 0%;
+    transition: width 0.3s ease;
+}
