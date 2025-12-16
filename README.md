@@ -1,3 +1,11 @@
+➕ Mis redes
+Mis cursos: https://DonKolia.com/
+Discord: https://dsc.gg/DonKolia
+Twitter: https://twitter.com/DonKolia
+TikTok: https://www.tiktok.com/@DonKolia
+Instagram: https://www.instagram.com/DonKolia_
+Twitch: https://www.twitch.tv/DonKolia
+
 # 📚 Flashcards Gratis (Clon de Quizlet)
 
 Esta es una aplicación web local, ligera y potente para estudiar con flashcards (fichas de memoria). Diseñada para ser simple, rápida y funcionar totalmente offline en tu ordenador, guardando tu progreso automáticamente.
