@@ -552,11 +552,18 @@ button {
 }
 
 .deck-actions {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
     display: flex;
     gap: 0.5rem;
     opacity: 0;
     /* Hidden by default, shown on hover */
     transition: opacity 0.2s;
+    background: var(--card-bg);
+    /* Ensure legibility if overlapping */
+    padding-left: 0.5rem;
+    /* Little breathing room */
 }
 
 .deck-card:hover .deck-actions {
@@ -592,16 +599,47 @@ button {
 }
 
 .deck-count {
+    font-size: 0.875rem;
     color: var(--text-secondary);
-    font-size: 0.9rem;
-    font-weight: 500;
+    margin-top: 0.25rem;
+}
+
+.deck-stats {
+    display: flex;
+    gap: 0.5rem;
+    align-self: center;
+    /* Center vertically relative to header height, or flex-start? */
+    /* User said "aligned with title". Title is at top. */
+    align-self: flex-start;
+    margin-left: auto;
+    /* Push to right */
+}
+
+.stat-badge {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.25rem 0.6rem;
+    border-radius: 2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.stat-badge.known {
+    background: rgba(35, 178, 109, 0.15);
+    color: var(--success);
+}
+
+.stat-badge.unknown {
+    background: rgba(255, 114, 91, 0.15);
+    color: var(--danger);
 }
 
 .deck-progress-wrapper {
-    margin-top: 1rem;
     height: 4px;
-    background: var(--input-bg);
+    background: var(--border-color);
     border-radius: 2px;
+    margin-top: 1rem;
     overflow: hidden;
 }
 

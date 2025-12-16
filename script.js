@@ -177,8 +177,9 @@ function loadLibrary() {
 
         // Calculate progress
         const total = deck.cards.length;
-        const known = deck.stats ? deck.stats.knownIds.length : 0;
-        const percent = total > 0 ? (known / total) * 100 : 0;
+        const knownCards = deck.stats && deck.stats.knownIds ? deck.stats.knownIds.length : 0;
+        const unknownCards = deck.stats && deck.stats.unknownIds ? deck.stats.unknownIds.length : 0;
+        const percent = total > 0 ? (knownCards / total) * 100 : 0;
 
         card.innerHTML = `
             <div class="deck-header">
@@ -186,6 +187,16 @@ function loadLibrary() {
                     <div class="deck-title">${deck.title}</div>
                     <div class="deck-count">${total} fichas</div>
                 </div>
+                
+                <div class="deck-stats">
+                    <div class="stat-badge known" title="Dominadas">
+                        <span>✔ ${knownCards}</span>
+                    </div>
+                    <div class="stat-badge unknown" title="Por aprender">
+                        <span>✖ ${unknownCards}</span>
+                    </div>
+                </div>
+
                 <div class="deck-actions">
                     <button class="btn-icon edit" title="Editar" data-id="${deck.id}">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
