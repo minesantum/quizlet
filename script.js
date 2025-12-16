@@ -57,8 +57,6 @@ let isFlipped = false;
 checkServerConnection().then(() => {
     loadLibrary();
 });
-
-// Event Listeners
 if (elements.btnSave) elements.btnSave.addEventListener('click', handleSaveAndStart);
 if (elements.btnCreateFirst) elements.btnCreateFirst.addEventListener('click', () => {
     resetImportScreen();
@@ -101,11 +99,6 @@ async function checkServerConnection() {
         }
     } catch (e) {
         console.log('Server not available, using local storage.');
-        // Fallback to data.js if local is empty
-        const local = localStorage.getItem(STORAGE_KEY);
-        if (!local && window.initialData) {
-            saveDecks(window.initialData);
-        }
         updateServerIndicator(false);
     }
 }
@@ -461,10 +454,15 @@ async function saveProgress(cardId, isKnown) {
         if (!deck.stats.knownIds.includes(cardId)) {
             deck.stats.knownIds.push(cardId);
         }
+        // Remove from unknown if present
+        const uIndex = deck.stats.unknownIds.indexOf(cardId);
+        if (uIndex > -1) deck.stats.unknownIds.splice(uIndex, 1);
     } else {
-        // Maybe ensure it's removed from known if we forgot it?
-        // Quizlet logic: stuck until you know it.
-        // If I say "Don't know", remove from knownIds if it was there?
+        // Add to unknown
+        if (!deck.stats.unknownIds.includes(cardId)) {
+            deck.stats.unknownIds.push(cardId);
+        }
+        // Remove from known if present
         const kIndex = deck.stats.knownIds.indexOf(cardId);
         if (kIndex > -1) deck.stats.knownIds.splice(kIndex, 1);
     }
@@ -538,7 +536,7 @@ function handleRoundEnd() {
         queue = [...nextRoundQueue];
         nextRoundQueue = [];
         // Optional: Shuffle the unknowns
-        // shuffleArray(queue);
+        shuffleArray(queue);
         loadNextCard();
     } else {
         // Truly finished
