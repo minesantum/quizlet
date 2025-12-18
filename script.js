@@ -885,6 +885,10 @@ function addBuilderOption(qIndex) {
 
 function removeBuilderOption(qIndex, oIndex) {
     if (builderCards[qIndex].options.length <= 1) return; // Prevent empty list
+
+    // Confirmation
+    if (!confirm('¿Seguro que quieres borrar esta opción?')) return;
+
     builderCards[qIndex].options.splice(oIndex, 1);
 
     // Ensure one is correct
