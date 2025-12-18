@@ -80,8 +80,7 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    /* Center content vertically too */
+    /* justify-content: center; Removed to allow scrolling on overflow */
     padding: 2rem;
 }
 
