@@ -6,45 +6,49 @@
 *   **Instagram:** [@DonKolia_](https://www.instagram.com/DonKolia_)
 *   **Twitch:** [DonKolia](https://www.twitch.tv/DonKolia)
 
-# 📚 Flashcards Gratis (Clon de Quizlet)
+# 📚 Flashcards Gratis & Test Builder (Clon de Quizlet)
 
-Esta es una aplicación web local, ligera y potente para estudiar con flashcards (fichas de memoria). Diseñada para ser simple, rápida y funcionar totalmente offline en tu ordenador, guardando tu progreso automáticamente.
+Esta es una aplicación web local, ligera y potente para estudiar. Ofrece herramientas de estudio profesionales como **Flashcards** con repetición espaciada y un **Diseñador de Exámenes** personalizado. Diseñada para ser simple, rápida y funcionar totalmente offline.
 
 ## 🚀 Cómo Empezar
 
-No necesitas instalar servidores complejos ni configurar bases de datos.
-
-1.  Asegúrate de tener **PHP** instalado en tu sistema (si estás en Windows, probablemente ya lo incluimos en las instrucciones o ya lo tienes).
+1.  Asegúrate de tener **PHP** instalado en tu sistema (para el guardado de datos).
 2.  Haz doble clic en el archivo **`INICIAR_APP.bat`**.
 3.  ¡Listo! Se abrirá automáticamente en tu navegador predeterminado.
 
-## ✨ Características
+## ✨ Características Principales
 
-*   **Sin Conexión a Internet**: Todo funciona en tu PC.
-*   **Persistencia Automática**: Tus mazos, cartas y **tu progreso** se guardan automáticamente en el archivo `database.json`. No necesitas darle a "Guardar" constantemente.
-*   **Modo de Estudio Inteligente**:
-    *   Las cartas se barajan aleatoriamente cada vez.
-    *   Si marcas una carta como "No lo sé", la aplicación te la volverá a preguntar repetidamente hasta que la aciertes.
-*   **Gestión de Mazos**:
-    *   Crear mazos nuevos importando texto simple (Termino, Definición).
-    *   Editar mazos existentes.
-    *   Borrar mazos.
-*   **Seguimiento de Progreso**: Visualiza rápidamente cuántas cartas dominas (Verde) y cuántas te faltan por aprender (Rojo) desde la biblioteca.
-*   **Diseño Moderno**: Interfaz oscura, limpia y sin distracciones, inspirada en las mejores apps de estudio.
+### 🧠 Modo Flashcards (Estudio)
+*   **Persistencia y Progreso**: Tus mazos y tu progreso se guardan automáticamente.
+*   **Repetición Inteligente**: Si marcas "No lo sé", la carta volverá a aparecer hasta que la domines.
+*   **Importación Rápida**: Pega listas de texto (Término, Definición) para crear mazos en segundos.
+
+### 📝 Modo Test / Examen (¡NUEVO!)
+*   **Diseñador de Exámenes Profesional**: Crea tests complejos con la misma potencia que los mejores plugins profesionales, pero 100% independientes.
+*   **Preguntas Tipo Test**: Crea preguntas con múltiples opciones.
+*   **Control Total**: Define manualmente cuál es la respuesta correcta.
+*   **Feedback/Explicaciones**: Añade explicaciones detalladas que se mostrarán al usuario después de responder.
+*   **Dos Modos de Visualización**:
+    *   **Estudio**: Muestra tus opciones personalizadas tal como las creaste.
+    *   **Flashcard Híbrido**: Si la pregunta no tiene opciones definidas, la app genera distracciones inteligentes automáticamente basándose en otras cartas del mazo.
+
+### 💻 General
+*   **Interfaz Premium**: Diseño oscuro, moderno y limpio (Microsoft Forms / Quizlet style).
+*   **Biblioteca Organizada**: Visualiza tus mazos, progreso (dominadas vs por aprender) y edítalos fácilmente.
+*   **Sin Internet**: Todo funciona 100% en local.
 
 ## 🛠️ Tecnologías
 
-*   **Frontend**: HTML5, CSS3, Vanilla JavaScript.
-*   **Backend Local**: PHP (usado solo como un mini-servidor para poder escribir en el archivo `database.json` de tu disco duro).
-*   **Datos**: JSON (`database.json`).
+*   **Frontend**: HTML5, CSS3, Vanilla JavaScript (sin frameworks pesados).
+*   **Backend Local**: PHP ligero (usado solo para persistencia de datos en `database.json`).
+*   **Datos**: JSON plano para máxima portabilidad.
 
-## 📂 Estructura de Archivos
+## 📂 Archivos Importantes
 
-*   `INICIAR_APP.bat`: El lanzador mágico para Windows.
-*   `router.php`: El script que maneja el guardado de datos.
-*   `database.json`: Donde viven tus flashcards. **¡Haz copias de seguridad de este archivo si quieres guardar tus datos!**
-*   `index.html`, `style.css`, `script.js`: El código de la aplicación.
+*   `INICIAR_APP.bat`: Lanzador para Windows.
+*   `database.json`: **Aquí se guardan tus datos.** ¡Haz copias de seguridad de este archivo!
+*   `index.html`, `style.css`, `script.js`: El corazón de la aplicación.
 
 ---
 
-*Creado para estudiar de forma eficiente y gratuita.*
+*Creado para estudiar de forma eficiente, gratuita y profesional.*
