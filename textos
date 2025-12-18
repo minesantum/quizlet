@@ -4,3 +4,7 @@ que aparezca un constructor de test custom profesional, puedes estar el tiempo q
 
 2.
 Te he importado al workspace el plugin de wordpress de wp-quiz-pro para que uses su lógica para crear los tests, piensa que quiero algo sin depender de wordpress, es solamente para que te sirva de ayuda y lo apliques al quizlet
+
+3.
+actualmente el mazo tipo flashcards se genera en un campo de texto con formato "palabra, definición"
+me gustaría que se importara de dos maneras posibles, una con el campo de texto con el formato que hemos dicho y otra como en la imagen, en un cuadro sea la palabra y otra la definición como en la foto

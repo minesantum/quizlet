@@ -47,7 +47,15 @@ const elements = {
     simpleImportGroup: document.getElementById('simple-import-group'),
     testBuilderContainer: document.getElementById('test-builder-container'),
     builderList: document.getElementById('builder-questions-list'),
-    btnAddQuestion: document.getElementById('btn-add-question')
+    btnAddQuestion: document.getElementById('btn-add-question'),
+
+    // Flashcard Visual Builder Elements
+    flashcardSection: document.getElementById('flashcard-section'),
+    flashcardTextContainer: document.getElementById('flashcard-text-container'),
+    flashcardVisualContainer: document.getElementById('flashcard-visual-container'),
+    flashcardList: document.getElementById('flashcard-list'),
+    tabText: document.getElementById('tab-text'),
+    tabVisual: document.getElementById('tab-visual')
 };
 
 // State
@@ -58,7 +66,10 @@ let currentDeckId = null;
 let currentDeckType = 'flashcard';
 let editingDeckId = null; // Track if we are editing
 let allCards = [];
-let builderCards = [];
+let builderCards = []; // Test Builder Data
+let visualFlashcards = []; // Visual Flashcard Builder Data
+let activeFlashcardTab = 'text'; // 'text' or 'visual'
+
 let queue = [];
 let nextRoundQueue = [];
 let knownCount = 0;
@@ -189,7 +200,7 @@ function loadLibrary() {
     if (decks.length === 0) {
         elements.decksGrid.innerHTML = `
             <div class="empty-state">
-                <p>No tienes mazos guardados aún.</p>
+                <p>No tienes mazos guardados aún</p>
                 <button id="btn-create-first-dynamic" class="btn-primary">Crear mi primer mazo</button>
             </div>`;
         document.getElementById('btn-create-first-dynamic').addEventListener('click', () => showScreen('import'));
@@ -296,15 +307,24 @@ function showScreen(screenName) {
 
 function toggleImportMode(type) {
     if (type === 'test') {
-        elements.simpleImportGroup.hidden = true;
+        if (elements.simpleImportGroup) elements.simpleImportGroup.hidden = true;
+        if (elements.flashcardSection) elements.flashcardSection.hidden = true;
+
         elements.testBuilderContainer.hidden = false;
         // Init builder if empty
         if (builderCards.length === 0) {
             addBuilderQuestion(); // Add one default
         }
     } else {
-        elements.simpleImportGroup.hidden = false;
+        // Flashcard Mode
+        if (elements.flashcardSection) elements.flashcardSection.hidden = false;
+        if (elements.simpleImportGroup) elements.simpleImportGroup.hidden = true;
         elements.testBuilderContainer.hidden = true;
+
+        // Init visual builder if empty
+        if (visualFlashcards.length === 0) {
+            addVisualFlashcard();
+        }
     }
 }
 
@@ -316,7 +336,14 @@ function resetImportScreen() {
     // Reset Radio to default
     const radios = document.getElementsByName('deck-type');
     if (radios.length > 0) radios[0].checked = true;
+
     toggleImportMode('flashcard');
+
+    // Reset Visual Flashcards
+    visualFlashcards = [];
+    activeFlashcardTab = 'text';
+    switchFlashcardTab('text');
+    renderFlashcardBuilder();
 
     builderCards = [];
     renderBuilder();
@@ -336,16 +363,51 @@ function editDeck(id) {
 
     editingDeckId = id;
 
-    // Pre-fill fields
+    // Pre-fill Title
     elements.deckTitle.value = deck.title;
-    const cardsText = deck.cards.map(c => `${c.term}, ${c.definition}`).join('\n');
-    elements.importText.value = cardsText;
 
     // Set Radio
     const type = deck.type || 'flashcard';
     const radios = document.getElementsByName('deck-type');
     for (const r of radios) {
         if (r.value === type) r.checked = true;
+    }
+    toggleImportMode(type);
+
+    if (type === 'flashcard') {
+        // Clear Text Area to avoid duplication on save
+        elements.importText.value = '';
+
+        // Populate Visual Builder
+        // Ensure deep copy to avoid reference issues
+        visualFlashcards = deck.cards.map(c => ({
+            id: c.id,
+            term: c.term,
+            definition: c.definition
+        }));
+
+        renderFlashcardBuilder();
+
+        // Populate text area from visual so both are full
+        syncFlashcardState('visual');
+
+        // Switch to Visual Tab so user sees the data immediately
+        switchFlashcardTab('visual');
+
+    } else {
+        // Test Builder Mode
+        // Populate Builder Cards
+        builderCards = deck.cards.map(c => {
+            // Deep copy of options
+            const opts = c.options ? c.options.map(o => ({ ...o })) : [];
+            return {
+                id: c.id,
+                term: c.term,
+                explanation: c.explanation || '',
+                options: opts
+            };
+        });
+        renderBuilder();
     }
 
     // Update UI texts to indicate editing
@@ -356,6 +418,7 @@ function editDeck(id) {
     if (elements.btnSave) elements.btnSave.innerText = 'Guardar Cambios';
 
     showScreen('import');
+
 }
 
 async function deleteDeck(id) {
@@ -374,24 +437,24 @@ async function handleSaveAndStart() {
     let newCards = [];
 
     if (type === 'flashcard') {
-        const text = elements.importText.value.trim();
-        if (!text) return alert('Por favor ingresa algunas fichas.');
-        const lines = text.split('\n');
-        newCards = lines.map((line, index) => {
-            const commaIndex = line.indexOf(',');
-            if (commaIndex === -1) return null;
+        // Sync before saving based on active tab to ensure consistency
+        if (activeFlashcardTab === 'text') {
+            syncFlashcardState('text');
+        } else {
+            syncFlashcardState('visual');
+        }
 
-            const term = line.substring(0, commaIndex).trim();
-            const def = line.substring(commaIndex + 1).trim();
+        // Use visualFlashcards as the single source of truth (since it's now synced)
+        // Filter empty
+        newCards = visualFlashcards
+            .filter(c => c.term.trim() !== '' && c.definition.trim() !== '')
+            .map((c, index) => ({
+                id: c.id || (Date.now() + index),
+                term: c.term,
+                definition: c.definition
+            }));
 
-            if (!term || !def) return null;
-
-            return {
-                id: Date.now() + index,
-                term: term,
-                definition: def
-            };
-        }).filter(card => card !== null);
+        if (newCards.length === 0) return alert('Por favor ingresa algunas fichas válidas.');
     } else {
         // Builder Mode
         // Validate
@@ -925,3 +988,137 @@ function shuffleArray(array) {
         [array[i], array[j]] = [array[j], array[i]];
     }
 }
+
+// Visual Flashcard Builder Functions
+function syncFlashcardState(fromMode) {
+    if (fromMode === 'text') {
+        const text = elements.importText.value.trim();
+        if (!text) {
+            // Only clear if empty, but be careful not to wipe if user just cleared text to start over?
+            // Yes, syncing means mirroring.
+            visualFlashcards = [];
+        } else {
+            const lines = text.split('\n');
+            visualFlashcards = lines.map((line, index) => {
+                const commaIndex = line.indexOf(',');
+                let term = line;
+                let def = '';
+                if (commaIndex > -1) {
+                    term = line.substring(0, commaIndex).trim();
+                    def = line.substring(commaIndex + 1).trim();
+                }
+                // Determine ID: try to keep existing if possible? Hard with text parsing.
+                // Just new IDs or temp IDs.
+                return {
+                    id: Date.now() + index,
+                    term: term,
+                    definition: def
+                };
+            }).filter(c => c.term || c.definition);
+        }
+        renderFlashcardBuilder();
+    } else {
+        // From Visual to Text
+        const text = visualFlashcards
+            .filter(c => c.term || c.definition)
+            .map(c => `${c.term}, ${c.definition}`)
+            .join('\n');
+        elements.importText.value = text;
+    }
+}
+
+function switchFlashcardTab(tab) {
+    // Sync before switching
+    if (activeFlashcardTab === 'text' && tab === 'visual') {
+        syncFlashcardState('text');
+    } else if (activeFlashcardTab === 'visual' && tab === 'text') {
+        syncFlashcardState('visual');
+    }
+
+    activeFlashcardTab = tab;
+    // Update Tabs UI
+
+    if (tab === 'text') {
+        elements.tabText.classList.add('active');
+        elements.tabVisual.classList.remove('active');
+        elements.flashcardTextContainer.hidden = false;
+        elements.flashcardTextContainer.classList.add('active');
+        elements.flashcardVisualContainer.hidden = true;
+        elements.flashcardVisualContainer.classList.remove('active');
+    } else {
+        elements.tabText.classList.remove('active');
+        elements.tabVisual.classList.add('active');
+        elements.flashcardTextContainer.hidden = true;
+        elements.flashcardTextContainer.classList.remove('active');
+        elements.flashcardVisualContainer.hidden = false;
+        elements.flashcardVisualContainer.classList.add('active');
+
+        // Init if empty
+        if (visualFlashcards.length === 0) addVisualFlashcard();
+    }
+}
+
+function renderFlashcardBuilder() {
+    elements.flashcardList.innerHTML = '';
+
+    visualFlashcards.forEach((card, index) => {
+        const row = document.createElement('div');
+        row.className = 'flashcard-row';
+        row.innerHTML = `
+            <div class="flashcard-row-number">${index + 1}</div>
+            
+            <div class="flashcard-input-group">
+                <input type="text" class="flashcard-input" placeholder="Término" value="${card.term}" onchange="updateVisualFlashcard(${index}, 'term', this.value)">
+                <span class="flashcard-input-label">TÉRMINO</span>
+            </div>
+            
+            <div class="flashcard-input-group">
+                <input type="text" class="flashcard-input" placeholder="Definición" value="${card.definition}" onchange="updateVisualFlashcard(${index}, 'definition', this.value)">
+                <span class="flashcard-input-label">DEFINICIÓN</span>
+            </div>
+
+            <button class="btn-delete-row" title="Eliminar ficha" onclick="removeVisualFlashcard(${index})">
+                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+        `;
+        elements.flashcardList.appendChild(row);
+    });
+}
+
+function addVisualFlashcard() {
+    visualFlashcards.push({
+        id: Date.now(),
+        term: '',
+        definition: ''
+    });
+    renderFlashcardBuilder();
+}
+
+function removeVisualFlashcard(index) {
+    // If it's the only card and it's completely empty, just reset/ignore
+    if (visualFlashcards.length === 1 && !visualFlashcards[0].term.trim() && !visualFlashcards[0].definition.trim()) {
+        return;
+    }
+
+    // Always confirm deletion for safety
+    if (!confirm('¿Seguro que quieres borrar esta ficha?')) return;
+
+    visualFlashcards.splice(index, 1);
+
+    // If we deleted the last one, add a new empty one immediately
+    if (visualFlashcards.length === 0) {
+        addVisualFlashcard();
+    } else {
+        renderFlashcardBuilder();
+    }
+}
+
+function updateVisualFlashcard(index, field, value) {
+    visualFlashcards[index][field] = value;
+}
+
+// Window exports
+window.switchFlashcardTab = switchFlashcardTab;
+window.addVisualFlashcard = addVisualFlashcard;
+window.removeVisualFlashcard = removeVisualFlashcard;
+window.updateVisualFlashcard = updateVisualFlashcard;

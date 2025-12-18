@@ -70,10 +70,33 @@
                     </div>
                 </div>
 
-                <div class="input-group" id="simple-import-group">
-                    <label for="import-text" class="input-label">Pega tus fichas (Palabra, Definición)</label>
-                    <textarea id="import-text" placeholder="Manzana, Fruta roja&#10;Perro, Animal doméstico"
-                        spellcheck="false"></textarea>
+                <!-- Flashcard Content Section -->
+                <div id="flashcard-section">
+                    <div class="tabs">
+                        <button id="tab-text" class="tab active" onclick="switchFlashcardTab('text')">Texto
+                            Masivo</button>
+                        <button id="tab-visual" class="tab" onclick="switchFlashcardTab('visual')">Editor
+                            Visual</button>
+                    </div>
+
+                    <!-- Text Mode -->
+                    <div id="flashcard-text-container" class="tab-content active">
+                        <div class="input-group">
+                            <label for="import-text" class="input-label">Pega tus fichas (Palabra, Definición)</label>
+                            <textarea id="import-text" placeholder="Manzana, Fruta roja&#10;Perro, Animal doméstico"
+                                spellcheck="false"></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Visual Builder Mode -->
+                    <div id="flashcard-visual-container" class="tab-content" hidden>
+                        <div id="flashcard-list" class="flashcard-list">
+                            <!-- Rows injected by JS -->
+                        </div>
+                        <button id="btn-add-flashcard" class="btn-dashed" onclick="addVisualFlashcard()">
+                            + Añadir Ficha
+                        </button>
+                    </div>
                 </div>
 
                 <!-- Professional Test Builder -->
