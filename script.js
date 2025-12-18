@@ -352,7 +352,7 @@ function resetImportScreen() {
     const h1 = document.querySelector('#import-screen h1');
     const p = document.querySelector('#import-screen p');
     if (h1) h1.innerText = 'Crear nuevo mazo';
-    if (p) p.innerText = 'Importa tus flashcards para empezar.';
+    if (p) p.innerText = 'Importa tus flashcards para empezar';
     if (elements.btnSave) elements.btnSave.innerText = 'Guardar y Estudiar';
 }
 

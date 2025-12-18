@@ -1140,6 +1140,8 @@ button {
     margin-bottom: -2px;
     /* Overlap border */
     transition: all 0.2s;
+    flex: 1;
+    text-align: center;
 }
 
 .tab:hover {
