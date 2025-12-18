@@ -1,0 +1,6 @@
+estaría bien que haya un constructor de test, que los usuarios puedan construir su propio test
+al darle modo test (solo preguntas)
+que aparezca un constructor de test custom profesional, puedes estar el tiempo que quieras creándolo, pero que sea profesional
+
+2.
+Te he importado al workspace el plugin de wordpress de wp-quiz-pro para que uses su lógica para crear los tests, piensa que quiero algo sin depender de wordpress, es solamente para que te sirva de ayuda y lo apliques al quizlet

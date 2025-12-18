@@ -55,9 +55,41 @@
                 </div>
 
                 <div class="input-group">
+                    <label class="input-label">Tipo de Contenido</label>
+                    <div class="deck-type-selector">
+                        <label class="radio-label">
+                            <input type="radio" name="deck-type" value="flashcard" checked>
+                            <span class="radio-custom"></span>
+                            <span class="radio-text">Flashcards (Estándar)</span>
+                        </label>
+                        <label class="radio-label">
+                            <input type="radio" name="deck-type" value="test">
+                            <span class="radio-custom"></span>
+                            <span class="radio-text">Test (Solo Preguntas)</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="input-group" id="simple-import-group">
                     <label for="import-text" class="input-label">Pega tus fichas (Palabra, Definición)</label>
                     <textarea id="import-text" placeholder="Manzana, Fruta roja&#10;Perro, Animal doméstico"
                         spellcheck="false"></textarea>
+                </div>
+
+                <!-- Professional Test Builder -->
+                <div id="test-builder-container" class="builder-container" hidden>
+                    <div class="builder-header">
+                        <h3>Diseñador de Examen</h3>
+                        <p>Crea preguntas personalizadas y define las respuestas correctas.</p>
+                    </div>
+
+                    <div id="builder-questions-list" class="builder-list">
+                        <!-- Questions injected here -->
+                    </div>
+
+                    <button id="btn-add-question" class="btn-dashed">
+                        + Añadir Pregunta
+                    </button>
                 </div>
 
                 <div class="import-actions">
@@ -74,6 +106,16 @@
                 </div>
                 <div class="progress-bar-container">
                     <div id="progress-bar" class="progress-bar"></div>
+                </div>
+            </div>
+
+            <div class="test-container" id="test-container" hidden>
+                <div class="question-box">
+                    <span class="question-label">Pregunta</span>
+                    <h2 id="test-question">...</h2>
+                </div>
+                <div class="options-grid" id="test-options">
+                    <!-- Options will be injected here -->
                 </div>
             </div>
 

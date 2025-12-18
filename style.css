@@ -31,6 +31,10 @@
     padding: 0;
 }
 
+[hidden] {
+    display: none !important;
+}
+
 body {
     font-family: var(--font-family);
     background-color: var(--bg-color);
@@ -706,4 +710,405 @@ button {
 
 .db-status.disconnected #db-status-text {
     color: var(--danger);
+}
+
+/* Radio Selector */
+.deck-type-selector {
+    display: flex;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.radio-label {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    cursor: pointer;
+    background: var(--input-bg);
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    border: 2px solid var(--border-color);
+    flex: 1;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.radio-label:hover {
+    border-color: var(--text-secondary);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+/* Pseudo-class :has support check (most modern browsers) */
+.radio-label:has(input:checked) {
+    border-color: var(--primary);
+    background: rgba(66, 85, 255, 0.1);
+}
+
+.radio-label input {
+    display: none;
+}
+
+.radio-custom {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--text-secondary);
+    border-radius: 50%;
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+}
+
+.radio-label input:checked+.radio-custom {
+    border-color: var(--primary);
+}
+
+.radio-label input:checked+.radio-custom::after {
+    content: '';
+    width: 10px;
+    height: 10px;
+    background: var(--primary);
+    border-radius: 50%;
+    animation: scaleIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.radio-text {
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.radio-label input:checked~.radio-text {
+    color: var(--text-main);
+    font-weight: 600;
+}
+
+@keyframes scaleIn {
+    from {
+        transform: scale(0);
+    }
+
+    to {
+        transform: scale(1);
+    }
+}
+
+/* Test Mode */
+.test-container {
+    width: 100%;
+    max-width: 700px;
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    margin-bottom: 2rem;
+    animation: fadeIn 0.4s ease;
+}
+
+.question-box {
+    background: var(--card-bg);
+    padding: 3rem 2rem;
+    border-radius: var(--radius-lg);
+    text-align: center;
+    box-shadow: var(--shadow-md);
+    position: relative;
+    border: 2px solid transparent;
+}
+
+.question-label {
+    position: absolute;
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 600;
+}
+
+.question-box h2 {
+    font-size: 2rem;
+    color: var(--text-main);
+}
+
+.options-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+.option-btn {
+    background: var(--card-bg);
+    border: 2px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 1.5rem;
+    border-radius: var(--radius-md);
+    font-size: 1.125rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+    text-align: center;
+}
+
+.option-btn:hover {
+    border-color: var(--primary);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-main);
+}
+
+.option-btn.correct {
+    background: rgba(35, 178, 109, 0.2);
+    border-color: var(--success);
+    color: var(--success);
+}
+
+.option-btn.wrong {
+    background: rgba(255, 114, 91, 0.2);
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
+@media (max-width: 600px) {
+    .options-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Test Builder (Microsoft Forms Style) */
+.builder-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    width: 100%;
+    animation: fadeIn 0.3s ease;
+    padding-bottom: 2rem;
+}
+
+.builder-header {
+    text-align: left;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+.builder-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.question-card {
+    background: var(--card-bg);
+    border-top: 4px solid transparent;
+    /* Prepare for active state */
+    border-radius: var(--radius-md);
+    padding: 1.5rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    /* Subtle shadow */
+    transition: all 0.2s;
+    position: relative;
+    border: 1px solid var(--input-bg);
+    /* Subtle border */
+    border-left: 4px solid transparent;
+}
+
+.question-card:focus-within {
+    border-left-color: var(--primary);
+    /* MS Forms Active Indicator */
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    background: #2e3856;
+    /* Ensure differentiation */
+}
+
+.question-header {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Question Title Input - Large and bold like a title */
+.question-input-title {
+    width: 100%;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.5rem 0;
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-main);
+    transition: border-color 0.2s;
+    border-radius: 0;
+}
+
+.question-input-title:focus {
+    outline: none;
+    border-bottom-color: var(--primary);
+    border-width: 2px;
+}
+
+.question-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.question-number {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.btn-delete-q {
+    color: var(--text-secondary);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: background 0.2s;
+}
+
+.btn-delete-q:hover {
+    color: var(--danger);
+    background: rgba(255, 114, 91, 0.1);
+}
+
+/* Options List */
+.options-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.option-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    group: relative;
+}
+
+.correct-radio {
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--text-secondary);
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.correct-radio:hover {
+    border-color: var(--text-main);
+}
+
+.correct-radio:checked {
+    border-color: var(--success);
+    background: var(--success);
+}
+
+.correct-radio:checked::after {
+    content: '✔';
+    font-size: 14px;
+    color: white;
+}
+
+.option-input {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid transparent;
+    /* Invisible border normally */
+    border-radius: var(--radius-md);
+    background: transparent;
+    /* Seamless look */
+    color: var(--text-main);
+    font-size: 0.95rem;
+    transition: all 0.2s;
+}
+
+.option-input:hover {
+    background: var(--input-bg);
+    /* Hover feedback */
+}
+
+.option-input:focus {
+    background: var(--input-bg);
+    border-bottom: 2px solid var(--primary);
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    outline: none;
+}
+
+.btn-delete-opt {
+    color: var(--text-secondary);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.option-row:hover .btn-delete-opt {
+    opacity: 1;
+}
+
+.btn-delete-opt:hover {
+    color: var(--danger);
+}
+
+.btn-add-opt {
+    color: var(--primary);
+    background: transparent;
+    border: none;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: left;
+    margin-top: 0.5rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+}
+
+.btn-add-opt:hover {
+    text-decoration: underline;
+}
+
+/* Main Add Question Button (Big Bar) */
+.btn-dashed {
+    background: var(--input-bg);
+    border: none;
+    /* No dashed border, solid bar like MS Forms */
+    color: var(--primary);
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    font-weight: 600;
+    font-size: 1rem;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.2s;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.btn-dashed:hover {
+    background: var(--card-bg);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.btn-dashed svg {
+    width: 24px;
+    height: 24px;
 }

@@ -34,7 +34,20 @@ const elements = {
     btnUnknown: document.getElementById('btn-unknown'),
     statKnown: document.getElementById('stat-known'),
     statUnknown: document.getElementById('stat-unknown'),
-    btnRestartAll: document.getElementById('btn-restart-all')
+    btnRestartAll: document.getElementById('btn-restart-all'),
+
+    // Test Mode Elements
+    testContainer: document.getElementById('test-container'),
+    testQuestion: document.getElementById('test-question'),
+    testOptions: document.getElementById('test-options'),
+    controls: document.querySelector('.controls'),
+    flashcardContainer: document.querySelector('.flashcard-container'), // Need to select class if no ID
+
+    // Builder Elements
+    simpleImportGroup: document.getElementById('simple-import-group'),
+    testBuilderContainer: document.getElementById('test-builder-container'),
+    builderList: document.getElementById('builder-questions-list'),
+    btnAddQuestion: document.getElementById('btn-add-question')
 };
 
 // State
@@ -42,8 +55,10 @@ const STORAGE_KEY = 'quizclone_data';
 const SERVER_URL = '/api/decks';
 let usingServer = false;
 let currentDeckId = null;
+let currentDeckType = 'flashcard';
 let editingDeckId = null; // Track if we are editing
 let allCards = [];
+let builderCards = [];
 let queue = [];
 let nextRoundQueue = [];
 let knownCount = 0;
@@ -69,9 +84,25 @@ elements.btnImportNav.addEventListener('click', () => {
     resetImportScreen();
     showScreen('import');
 });
-elements.btnLibraryNav.addEventListener('click', () => {
-    loadLibrary();
-    showScreen('library');
+
+if (elements.btnLibraryNav) {
+    elements.btnLibraryNav.addEventListener('click', () => {
+        loadLibrary(); // Reload to ensure freshness
+        showScreen('library');
+    });
+}
+
+
+// Builder Listeners
+if (elements.btnAddQuestion) elements.btnAddQuestion.addEventListener('click', () => {
+    addBuilderQuestion();
+});
+
+document.addEventListener('change', (e) => {
+    if (e.target.name === 'deck-type') {
+        const type = e.target.value;
+        toggleImportMode(type);
+    }
 });
 
 
@@ -263,10 +294,33 @@ function showScreen(screenName) {
     elements.btnImportNav.hidden = (screenName === 'import');
 }
 
+function toggleImportMode(type) {
+    if (type === 'test') {
+        elements.simpleImportGroup.hidden = true;
+        elements.testBuilderContainer.hidden = false;
+        // Init builder if empty
+        if (builderCards.length === 0) {
+            addBuilderQuestion(); // Add one default
+        }
+    } else {
+        elements.simpleImportGroup.hidden = false;
+        elements.testBuilderContainer.hidden = true;
+    }
+}
+
 function resetImportScreen() {
     editingDeckId = null;
     elements.importText.value = '';
     elements.deckTitle.value = '';
+
+    // Reset Radio to default
+    const radios = document.getElementsByName('deck-type');
+    if (radios.length > 0) radios[0].checked = true;
+    toggleImportMode('flashcard');
+
+    builderCards = [];
+    renderBuilder();
+
     // Reset UI texts
     const h1 = document.querySelector('#import-screen h1');
     const p = document.querySelector('#import-screen p');
@@ -286,6 +340,13 @@ function editDeck(id) {
     elements.deckTitle.value = deck.title;
     const cardsText = deck.cards.map(c => `${c.term}, ${c.definition}`).join('\n');
     elements.importText.value = cardsText;
+
+    // Set Radio
+    const type = deck.type || 'flashcard';
+    const radios = document.getElementsByName('deck-type');
+    for (const r of radios) {
+        if (r.value === type) r.checked = true;
+    }
 
     // Update UI texts to indicate editing
     const h1 = document.querySelector('#import-screen h1');
@@ -307,27 +368,60 @@ async function deleteDeck(id) {
 }
 
 async function handleSaveAndStart() {
-    const text = elements.importText.value.trim();
     const title = elements.deckTitle.value.trim() || 'Sin Título';
+    const type = document.querySelector('input[name="deck-type"]:checked').value;
 
-    if (!text) return alert('Por favor ingresa algunas fichas.');
+    let newCards = [];
 
-    const lines = text.split('\n');
-    const newCards = lines.map((line, index) => {
-        const commaIndex = line.indexOf(',');
-        if (commaIndex === -1) return null;
+    if (type === 'flashcard') {
+        const text = elements.importText.value.trim();
+        if (!text) return alert('Por favor ingresa algunas fichas.');
+        const lines = text.split('\n');
+        newCards = lines.map((line, index) => {
+            const commaIndex = line.indexOf(',');
+            if (commaIndex === -1) return null;
 
-        const term = line.substring(0, commaIndex).trim();
-        const def = line.substring(commaIndex + 1).trim();
+            const term = line.substring(0, commaIndex).trim();
+            const def = line.substring(commaIndex + 1).trim();
 
-        if (!term || !def) return null;
+            if (!term || !def) return null;
 
-        return {
-            id: Date.now() + index,
-            term: term,
-            definition: def
-        };
-    }).filter(card => card !== null);
+            return {
+                id: Date.now() + index,
+                term: term,
+                definition: def
+            };
+        }).filter(card => card !== null);
+    } else {
+        // Builder Mode
+        // Validate
+        const validCards = builderCards.filter(c => c.term.trim() !== '');
+        if (validCards.length === 0) return alert('Por favor añade al menos una pregunta.');
+
+        // Construct cards
+        newCards = validCards.map((c, index) => {
+            // Filter empty options
+            const validOptions = c.options.filter(o => o.text.trim() !== '');
+            // Check if correct is set
+            if (!validOptions.some(o => o.isCorrect)) {
+                // If unset, maybe set first as correct? Or alert?
+                // Let's set first as correct for safety if exists
+                if (validOptions.length > 0) validOptions[0].isCorrect = true;
+            }
+
+            // Definition is technically the correct answer for legacy compt
+            const correctOpt = validOptions.find(o => o.isCorrect);
+            const def = correctOpt ? correctOpt.text : '???';
+
+            return {
+                id: c.id || (Date.now() + index),
+                term: c.term,
+                definition: def,
+                explanation: c.explanation,
+                options: validOptions
+            };
+        });
+    }
 
     if (newCards.length === 0) return alert('No se encontraron fichas válidas.');
 
@@ -338,18 +432,7 @@ async function handleSaveAndStart() {
         const deckIndex = decks.findIndex(d => d.id === editingDeckId);
         if (deckIndex > -1) {
             decks[deckIndex].title = title;
-            // Strategy: Replace cards. What about stats?
-            // If cards changed, stats might be invalid.
-            // Let's reset stats for simplicity or try to match?
-            // User: "que profesional".
-            // Professional behavior: Keep stats for UNCHANGED cards.
-            // Complex match: Compare terms?
-            // Simplest safe approach: Reset stats if cards change.
-            // Or just Keep stats map and filter out knownIds that no longer exist in newCards?
-            // Actually, IDs in newCards are NEW timestamps. So old stats won't match.
-            // So we effectively reset progress on edit if we regenerate IDs.
-            // To preserve progress, we would need to parse and match existing IDs. Too complex for simple text box import.
-            // Let's just reset stats and explain/accept it. Or keep it simple: new cards = new progress.
+            decks[deckIndex].type = type;
             decks[deckIndex].cards = newCards;
             decks[deckIndex].stats = { knownIds: [], unknownIds: [] }; // Reset stats on full edit
         }
@@ -358,6 +441,7 @@ async function handleSaveAndStart() {
         const newDeck = {
             id: Date.now(),
             title: title,
+            type: type,
             cards: newCards,
             stats: {
                 knownIds: [],
@@ -390,7 +474,21 @@ async function handleSaveAndStart() {
 
 function startSession(deck) {
     currentDeckId = deck.id;
+    currentDeckType = deck.type || 'flashcard';
     allCards = deck.cards;
+
+    // Toggle UI based on type
+    if (currentDeckType === 'test') {
+        elements.flashcardContainer.hidden = true;
+        elements.controls.hidden = true;
+        elements.testContainer.hidden = false;
+        elements.testContainer.style.display = 'flex'; // Ensure flex
+    } else {
+        elements.flashcardContainer.hidden = false;
+        elements.controls.hidden = false;
+        elements.testContainer.hidden = true;
+        elements.testContainer.style.display = 'none';
+    }
 
     // Load progress
     // If we want to resume where we left off (only showing unknown cards)
@@ -427,7 +525,9 @@ function startSession(deck) {
 
     knownCount = knownIds.length;
 
-    // Randomize queue for better learning
+    knownCount = knownIds.length;
+
+    // Shuffle cards initially
     shuffleArray(queue);
 
     nextRoundQueue = [];
@@ -484,13 +584,71 @@ function loadNextCard() {
 
     currentCard = queue.shift();
     isFlipped = false;
-    elements.flashcard.classList.remove('flipped');
 
-    // Slight delay to allow flip animation reset if needed, but here we just swap content
-    elements.cardFrontText.innerText = currentCard.term;
-    elements.cardBackText.innerText = currentCard.definition;
+    if (currentDeckType === 'test') {
+        renderTestCard();
+    } else {
+        elements.flashcard.classList.remove('flipped');
+        elements.cardFrontText.innerText = currentCard.term;
+        elements.cardBackText.innerText = currentCard.definition;
+    }
 
     updateProgress();
+}
+
+function renderTestCard() {
+    // 1. Set Question
+    elements.testQuestion.innerText = currentCard.term;
+
+    // 2. Clear Options
+    elements.testOptions.innerHTML = '';
+
+    let options = [];
+
+    // Check if card has custom options (Builder created)
+    if (currentCard.options && currentCard.options.length > 0) {
+        options = currentCard.options.map(o => ({ ...o })); // Deep copy options
+    } else {
+        // Legacy/Flashcard Mode: Generate Distractors
+        const potentialDistractors = allCards.filter(c => c.id !== currentCard.id);
+        shuffleArray(potentialDistractors);
+        const distractors = potentialDistractors.slice(0, 3);
+
+        options = [
+            { text: currentCard.definition, isCorrect: true },
+            ...distractors.map(d => ({ text: d.definition, isCorrect: false }))
+        ];
+    }
+
+    // 5. Shuffle options so correct isn't always first
+    shuffleArray(options);
+
+    // 6. Render Buttons
+    options.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'option-btn';
+        btn.innerText = opt.text;
+
+        btn.addEventListener('click', () => {
+            // Disable all buttons to prevent double click
+            const allBtns = elements.testOptions.querySelectorAll('button');
+            allBtns.forEach(b => b.disabled = true);
+
+            if (opt.isCorrect) {
+                btn.classList.add('correct');
+                setTimeout(() => handleChoice(true), 600);
+            } else {
+                btn.classList.add('wrong');
+                // Highlight correct one?
+                const correctBtn = Array.from(allBtns).find(b => b.innerText === currentCard.definition);
+                if (correctBtn) correctBtn.classList.add('correct');
+
+                setTimeout(() => handleChoice(false), 1000); // Longer wait to see correction
+            }
+        });
+
+        elements.testOptions.appendChild(btn);
+    });
 }
 
 function handleFlip() {
@@ -508,14 +666,7 @@ async function handleChoice(known) {
     // Mark as animating to prevent double clicks
     elements.flashcard.classList.add('animating');
 
-    // Add Slide Animation
-    const animationClass = known ? 'slide-right' : 'slide-left';
-    elements.flashcard.classList.add(animationClass);
-
-    setTimeout(async () => {
-        elements.flashcard.classList.remove('animating', animationClass, 'flipped');
-        isFlipped = false; // Reset flip state
-
+    async function proceed() {
         if (known) {
             knownCount++;
             await saveProgress(currentCard.id, true);
@@ -526,7 +677,23 @@ async function handleChoice(known) {
         }
 
         loadNextCard();
-    }, 300); // Wait for CSS animation
+    }
+
+    // Only animate flashcard if visible (Deck Type check)
+    if (currentDeckType !== 'test') {
+        const animationClass = known ? 'slide-right' : 'slide-left';
+        elements.flashcard.classList.add(animationClass);
+
+        setTimeout(async () => {
+            elements.flashcard.classList.remove('animating', animationClass, 'flipped');
+            isFlipped = false; // Reset flip state
+            await proceed();
+        }, 300);
+    } else {
+        // Immediate (or already delayed by button click handler)
+        elements.flashcard.classList.remove('animating');
+        await proceed();
+    }
 }
 
 function handleRoundEnd() {
@@ -645,7 +812,109 @@ async function handleImport(event) {
     reader.readAsText(file);
 }
 
-// Utils
+// Builder Logic
+function renderBuilder() {
+    elements.builderList.innerHTML = '';
+
+    builderCards.forEach((card, qIndex) => {
+        const cardEl = document.createElement('div');
+        cardEl.className = 'question-card';
+        cardEl.innerHTML = `
+            <div class="question-header">
+                <div class="question-meta">
+                    <span class="question-number">Pregunta ${qIndex + 1}</span>
+                    <button class="btn-delete-q" title="Eliminar pregunta" onclick="removeBuilderQuestion(${qIndex})">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                    </button>
+                </div>
+                <input type="text" class="question-input-title" value="${card.term}" placeholder="Escribe tu pregunta..." onchange="updateBuilderCard(${qIndex}, 'term', this.value)">
+            </div>
+            
+            <div class="options-list">
+                ${card.options.map((opt, oIndex) => `
+                    <div class="option-row">
+                        <input type="radio" name="q-${qIndex}-correct" class="correct-radio" ${opt.isCorrect ? 'checked' : ''} onchange="updateBuilderOption(${qIndex}, ${oIndex}, 'isCorrect', true)" title="Marcar como respuesta correcta">
+                        <input type="text" class="option-input" value="${opt.text}" placeholder="Opción ${oIndex + 1}" onchange="updateBuilderOption(${qIndex}, ${oIndex}, 'text', this.value)">
+                        <button class="btn-delete-opt" title="Eliminar opción" onclick="removeBuilderOption(${qIndex}, ${oIndex})">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                        </button>
+                    </div>
+                `).join('')}
+                <button class="btn-add-opt" onclick="addBuilderOption(${qIndex})">
+                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M12 5v14M5 12h14"/></svg>
+                   Agregar opción
+                </button>
+            </div>
+            
+            <div class="explanation-field">
+                <textarea class="explanation-input" placeholder="Explicación de la respuesta (opcional)" onchange="updateBuilderCard(${qIndex}, 'explanation', this.value)">${card.explanation || ''}</textarea>
+            </div>
+        `;
+        elements.builderList.appendChild(cardEl);
+    });
+}
+
+function addBuilderQuestion() {
+    builderCards.push({
+        id: Date.now(),
+        term: '',
+        explanation: '',
+        options: [
+            { text: '', isCorrect: true },
+            { text: '', isCorrect: false }
+        ]
+    });
+    renderBuilder();
+}
+
+function removeBuilderQuestion(index) {
+    if (confirm('¿Eliminar pregunta?')) {
+        builderCards.splice(index, 1);
+        renderBuilder();
+    }
+}
+
+function updateBuilderCard(index, field, value) {
+    builderCards[index][field] = value;
+}
+
+function addBuilderOption(qIndex) {
+    builderCards[qIndex].options.push({ text: '', isCorrect: false });
+    renderBuilder();
+}
+
+function removeBuilderOption(qIndex, oIndex) {
+    if (builderCards[qIndex].options.length <= 1) return; // Prevent empty list
+    builderCards[qIndex].options.splice(oIndex, 1);
+
+    // Ensure one is correct
+    if (!builderCards[qIndex].options.some(o => o.isCorrect)) {
+        builderCards[qIndex].options[0].isCorrect = true;
+    }
+
+    renderBuilder();
+}
+
+function updateBuilderOption(qIndex, oIndex, field, value) {
+    if (field === 'isCorrect') {
+        // Unset others
+        builderCards[qIndex].options.forEach(o => o.isCorrect = false);
+        builderCards[qIndex].options[oIndex].isCorrect = true;
+    } else {
+        builderCards[qIndex].options[oIndex][field] = value;
+    }
+    // Re-render only if needed, but changing text uses onchange so no full re-render needed to keep focus.
+    // However, radio change might need visual update? 
+    // Actually, native radio behavior handles the check visual, we just updated state. 
+    // BUT we need to sync state correctly.
+}
+// Expose to window for onclick handlers in HTML string
+window.removeBuilderQuestion = removeBuilderQuestion;
+window.updateBuilderCard = updateBuilderCard;
+window.addBuilderOption = addBuilderOption;
+window.removeBuilderOption = removeBuilderOption;
+window.updateBuilderOption = updateBuilderOption;
+
 function shuffleArray(array) {
     for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1));
