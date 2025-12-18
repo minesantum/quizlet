@@ -414,7 +414,7 @@ function editDeck(id) {
     const h1 = document.querySelector('#import-screen h1');
     const p = document.querySelector('#import-screen p');
     if (h1) h1.innerText = 'Editar mazo';
-    if (p) p.innerText = 'Modifica el contenido de tus fichas.';
+    if (p) p.innerText = 'Modifica el contenido de tus fichas';
     if (elements.btnSave) elements.btnSave.innerText = 'Guardar Cambios';
 
     showScreen('import');

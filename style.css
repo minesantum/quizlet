@@ -86,13 +86,20 @@ body {
 
 .screen {
     display: none;
-    width: 100%;
-    max-width: 800px;
+    width: 75%;
+    max-width: 1600px;
+    /* Increased limit */
     flex-direction: column;
     align-items: center;
     animation: fadeIn 0.4s ease forwards;
     margin: auto;
     /* Safe vertical centering */
+}
+
+@media (max-width: 768px) {
+    .screen {
+        width: 95%;
+    }
 }
 
 .screen.active {
@@ -1113,6 +1120,7 @@ button {
     width: 24px;
     height: 24px;
 }
+
 /* Tabs */
 .tabs {
     display: flex;
@@ -1129,7 +1137,8 @@ button {
     font-weight: 600;
     cursor: pointer;
     border-bottom: 2px solid transparent;
-    margin-bottom: -2px; /* Overlap border */
+    margin-bottom: -2px;
+    /* Overlap border */
     transition: all 0.2s;
 }
 
@@ -1241,4 +1250,3 @@ button {
     border-color: var(--text-main);
     color: var(--text-main);
 }
-
