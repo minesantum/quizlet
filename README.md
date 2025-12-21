@@ -27,7 +27,7 @@ Esta es una aplicación web local, ligera y potente para estudiar. Ofrece herram
 *   **Diseñador de Exámenes Profesional**: Crea tests complejos con la misma potencia que los mejores plugins profesionales, pero 100% independientes.
 *   **Preguntas Tipo Test**: Crea preguntas con múltiples opciones.
 *   **Control Total**: Define manualmente cuál es la respuesta correcta.
-*   **Feedback/Explicaciones**: Añade explicaciones detalladas que se mostrarán al usuario después de responder.
+*   **Feedback/Explicaciones Inteligentes**: Añade explicaciones detalladas. Al responder correctamente, la explicación aparece y la app **calcula automáticamente el tiempo de lectura** necesario antes de pasar a la siguiente pregunta (basado en la longitud del texto), asegurando que tengas tiempo de leerla.
 *   **Dos Modos de Visualización**:
     *   **Estudio**: Muestra tus opciones personalizadas tal como las creaste.
     *   **Flashcard Híbrido**: Si la pregunta no tiene opciones definidas, la app genera distracciones inteligentes automáticamente basándose en otras cartas del mazo.

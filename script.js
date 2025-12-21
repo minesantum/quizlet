@@ -40,6 +40,7 @@ const elements = {
     testContainer: document.getElementById('test-container'),
     testQuestion: document.getElementById('test-question'),
     testOptions: document.getElementById('test-options'),
+    explanationBox: document.getElementById('explanation-box'),
     controls: document.querySelector('.controls'),
     flashcardContainer: document.querySelector('.flashcard-container'), // Need to select class if no ID
 
@@ -663,8 +664,12 @@ function renderTestCard() {
     // 1. Set Question
     elements.testQuestion.innerText = currentCard.term;
 
-    // 2. Clear Options
+    // 2. Clear Options and Explanation
     elements.testOptions.innerHTML = '';
+    if (elements.explanationBox) {
+        elements.explanationBox.hidden = true;
+        elements.explanationBox.innerText = '';
+    }
 
     let options = [];
 
@@ -699,14 +704,30 @@ function renderTestCard() {
 
             if (opt.isCorrect) {
                 btn.classList.add('correct');
-                setTimeout(() => handleChoice(true), 600);
+                
+                let delay = 600; // Base delay
+
+                // Show Explanation if valid
+                if (currentCard.explanation && currentCard.explanation.trim() !== '') {
+                    if (elements.explanationBox) {
+                        elements.explanationBox.innerText = currentCard.explanation;
+                        elements.explanationBox.hidden = false;
+                        
+                        // Dynamic delay: 1500ms base + 40ms per char
+                        // Example: 100 chars = 1500 + 4000 = 5.5s
+                        delay = 1500 + (currentCard.explanation.length * 40);
+                    }
+                }
+
+                setTimeout(() => handleChoice(true), delay);
             } else {
                 btn.classList.add('wrong');
-                // Highlight correct one?
+                // Highlight correct one
+                // Logic relies on currentCard.definition matching the correct button text
                 const correctBtn = Array.from(allBtns).find(b => b.innerText === currentCard.definition);
                 if (correctBtn) correctBtn.classList.add('correct');
 
-                setTimeout(() => handleChoice(false), 1000); // Longer wait to see correction
+                setTimeout(() => handleChoice(false), 1500); // Longer wait to see correction
             }
         });
 
