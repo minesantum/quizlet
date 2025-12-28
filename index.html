@@ -24,20 +24,69 @@
     </header>
 
     <main class="app-container">
+        <!-- Setup/Categories Screen -->
+        <section id="setup-screen" class="screen">
+            <div class="hero">
+                <h1>Gestionar Asignaturas</h1>
+                <p>Crea las asignaturas y temas para organizar tus mazos.</p>
+            </div>
+
+            <div class="setup-container">
+                <div class="setup-card">
+                    <div class="input-group">
+                        <label class="input-label">Nueva Asignatura</label>
+                        <div class="flex-row">
+                            <input type="text" id="new-subject-name" placeholder="Ej: Matemáticas" class="text-input">
+                            <button id="btn-add-subject" class="btn-primary" style="width: auto;">Añadir</button>
+                        </div>
+                    </div>
+
+                    <div id="subjects-list" class="subjects-list">
+                        <!-- Subjects and their topics will be listed here -->
+                    </div>
+
+                    <div class="setup-actions">
+                        <button id="btn-finish-setup" class="btn-primary">Ir a la Biblioteca</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- Library Screen -->
         <section id="library-screen" class="screen active">
+            <div class="header-actions">
+                <button id="btn-manage-categories" class="btn-secondary btn-sm">⚙ Gestionar Asignaturas</button>
+            </div>
             <div class="hero icon-hero">
                 <div class="hero-icon">📚</div>
                 <h1>Tu Biblioteca</h1>
-                <p>Selecciona un mazo para empezar a estudiar</p>
-
+                <p>Selecciona una asignatura para ver tus mazos</p>
             </div>
-            <div id="decks-grid" class="decks-grid">
-                <!-- Decks will be injected here -->
-                <div class="empty-state">
-                    <p>No tienes mazos guardados aún</p>
-                    <button id="btn-create-first" class="btn-primary">Crear mi primer mazo</button>
+
+            <div id="library-content" class="library-content">
+                <div id="subjects-grid" class="subjects-grid">
+                    <!-- Subject Buttons injected here -->
                 </div>
+            </div>
+
+            <div id="empty-library-state" class="empty-state" hidden>
+                <p>No tienes mazos guardados aún</p>
+                <button id="btn-create-first-dynamic" class="btn-primary">Crear mi primer mazo</button>
+            </div>
+        </section>
+
+        <!-- Subject Detail Screen -->
+        <section id="subject-screen" class="screen">
+            <div class="header-actions left">
+                <button id="btn-back-library" class="btn-text">← Volver a la Biblioteca</button>
+            </div>
+            <div class="hero icon-hero">
+                <div class="hero-icon" id="subject-hero-icon">📘</div>
+                <h1 id="subject-hero-title">Nombre Asignatura</h1>
+            </div>
+
+            <div id="subject-content" class="library-content">
+                <!-- Decks organized by Topic injected here -->
             </div>
         </section>
 
@@ -51,7 +100,22 @@
             <div class="import-card">
                 <div class="input-group">
                     <label for="deck-title" class="input-label">Título del Mazo</label>
-                    <input type="text" id="deck-title" placeholder="Ej: Inglés - Verbos Irregulares" class="text-input">
+                    <input type="text" id="deck-title" placeholder="Ej: Verbos Irregulares" class="text-input">
+                </div>
+
+                <div class="row-group">
+                    <div class="input-group half">
+                        <label for="deck-subject" class="input-label">Asignatura</label>
+                        <select id="deck-subject" class="text-input">
+                            <option value="">Selecciona una asignatura...</option>
+                        </select>
+                    </div>
+                    <div class="input-group half">
+                        <label for="deck-topic" class="input-label">Tema (Opcional)</label>
+                        <select id="deck-topic" class="text-input" disabled>
+                            <option value="">Selecciona una asignatura primero</option>
+                        </select>
+                    </div>
                 </div>
 
                 <div class="input-group">

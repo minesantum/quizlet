@@ -2,20 +2,39 @@
 // DOM Elements
 const screens = {
     library: document.getElementById('library-screen'),
+    subject: document.getElementById('subject-screen'),
     import: document.getElementById('import-screen'),
     game: document.getElementById('game-screen'),
-    result: document.getElementById('result-screen')
+    result: document.getElementById('result-screen'),
+    setup: document.getElementById('setup-screen')
 };
 
 const elements = {
     importText: document.getElementById('import-text'),
     deckTitle: document.getElementById('deck-title'),
+    deckSubject: document.getElementById('deck-subject'),
+    deckTopic: document.getElementById('deck-topic'),
     btnSave: document.getElementById('btn-save'),
-    btnStart: null, // Removed old button
     btnImportNav: document.getElementById('btn-import-nav'),
     btnLibraryNav: document.getElementById('btn-library-nav'),
-    decksGrid: document.getElementById('decks-grid'),
+    libraryContent: document.getElementById('library-content'),
+    subjectsGrid: document.getElementById('subjects-grid'),
+
+    // Subject Detail Elements
+    subjectContent: document.getElementById('subject-content'),
+    subjectHeroTitle: document.getElementById('subject-hero-title'),
+    subjectHeroIcon: document.getElementById('subject-hero-icon'),
+    btnBackLibrary: document.getElementById('btn-back-library'),
+
     btnCreateFirst: document.getElementById('btn-create-first'),
+    btnCreateFirstDynamic: document.getElementById('btn-create-first-dynamic'),
+    btnManageCategories: document.getElementById('btn-manage-categories'),
+
+    // Setup Elements
+    newSubjectName: document.getElementById('new-subject-name'),
+    btnAddSubject: document.getElementById('btn-add-subject'),
+    subjectsList: document.getElementById('subjects-list'),
+    btnFinishSetup: document.getElementById('btn-finish-setup'),
 
     // Backup controls
     btnExport: document.getElementById('btn-export'),
@@ -42,7 +61,7 @@ const elements = {
     testOptions: document.getElementById('test-options'),
     explanationBox: document.getElementById('explanation-box'),
     controls: document.querySelector('.controls'),
-    flashcardContainer: document.querySelector('.flashcard-container'), // Need to select class if no ID
+    flashcardContainer: document.querySelector('.flashcard-container'),
 
     // Builder Elements
     simpleImportGroup: document.getElementById('simple-import-group'),
@@ -65,11 +84,18 @@ const SERVER_URL = '/api/decks';
 let usingServer = false;
 let currentDeckId = null;
 let currentDeckType = 'flashcard';
-let editingDeckId = null; // Track if we are editing
+let editingDeckId = null;
+let currentViewingSubjectId = null; // Track which subject is open
+
+// Data State
+let decks = [];
+let subjects = [];
+let topics = [];
+
 let allCards = [];
 let builderCards = []; // Test Builder Data
 let visualFlashcards = []; // Visual Flashcard Builder Data
-let activeFlashcardTab = 'text'; // 'text' or 'visual'
+let activeFlashcardTab = 'text';
 
 let queue = [];
 let nextRoundQueue = [];
@@ -78,31 +104,63 @@ let currentCard = null;
 let isFlipped = false;
 
 // Initialization
-// Attempt to connect to local server first
 checkServerConnection().then(() => {
-    loadLibrary();
+    // Load data into state
+    const data = getData();
+    decks = data.decks;
+    subjects = data.subjects;
+    topics = data.topics;
+
+    // Check First Run
+    if (subjects.length === 0 && decks.length === 0) {
+        // Only show setup first if TRULY empty (no decks either)
+        renderSubjectsManager();
+        showScreen('setup');
+    } else {
+        loadLibrary();
+    }
 });
+
+// Event Listeners
 if (elements.btnSave) elements.btnSave.addEventListener('click', handleSaveAndStart);
-if (elements.btnCreateFirst) elements.btnCreateFirst.addEventListener('click', () => {
-    resetImportScreen();
-    showScreen('import');
+
+if (elements.btnCreateFirst) elements.btnCreateFirst.addEventListener('click', navigateToImport);
+if (elements.btnCreateFirstDynamic) elements.btnCreateFirstDynamic.addEventListener('click', navigateToImport);
+if (elements.btnBackLibrary) elements.btnBackLibrary.addEventListener('click', () => {
+    loadLibrary();
+    showScreen('library');
 });
+
+
 elements.flashcard.addEventListener('click', handleFlip);
 elements.btnKnown.addEventListener('click', () => handleChoice(true));
 elements.btnUnknown.addEventListener('click', () => handleChoice(false));
 elements.btnRestartAll.addEventListener('click', () => restart('all'));
 
-elements.btnImportNav.addEventListener('click', () => {
-    resetImportScreen();
-    showScreen('import');
-});
+elements.btnImportNav.addEventListener('click', navigateToImport);
 
 if (elements.btnLibraryNav) {
     elements.btnLibraryNav.addEventListener('click', () => {
-        loadLibrary(); // Reload to ensure freshness
+        loadLibrary();
         showScreen('library');
     });
 }
+
+// Setup & Categories Listeners
+if (elements.btnAddSubject) elements.btnAddSubject.addEventListener('click', addNewSubject);
+if (elements.btnFinishSetup) elements.btnFinishSetup.addEventListener('click', () => {
+    loadLibrary();
+    showScreen('library');
+});
+if (elements.btnManageCategories) elements.btnManageCategories.addEventListener('click', () => {
+    renderSubjectsManager();
+    showScreen('setup');
+});
+
+// Import Screen Category Logic
+if (elements.deckSubject) elements.deckSubject.addEventListener('change', (e) => {
+    populateTopicsSelect(e.target.value);
+});
 
 
 // Builder Listeners
@@ -117,11 +175,11 @@ document.addEventListener('change', (e) => {
     }
 });
 
-
-// Backup Listeners
-if (elements.btnExport) elements.btnExport.addEventListener('click', handleExport);
-if (elements.btnImportTrigger) elements.btnImportTrigger.addEventListener('click', () => elements.fileImport.click());
-if (elements.fileImport) elements.fileImport.addEventListener('change', handleImport);
+// Utility Functions
+function navigateToImport() {
+    resetImportScreen();
+    showScreen('import');
+}
 
 // Storage Functions
 async function checkServerConnection() {
@@ -129,7 +187,8 @@ async function checkServerConnection() {
         const res = await fetch(SERVER_URL);
         if (res.ok) {
             const data = await res.json();
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); // Sync server to local
+            // Expected format check? Assumed sync
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
             usingServer = true;
             console.log('Connected to Local Server');
             updateServerIndicator(true);
@@ -141,169 +200,359 @@ async function checkServerConnection() {
 }
 
 function updateServerIndicator(active) {
-    // Optional: Visual indicator
-    /*
-    let el = document.getElementById('server-status');
-    if(!el) {
-        el = document.createElement('div');
-        el.id = 'server-status';
-        el.style.position = 'fixed';
-        el.style.bottom = '10px';
-        el.style.right = '10px';
-        el.style.padding = '0.5rem';
-        el.style.borderRadius = '0.5rem';
-        el.style.fontSize = '0.75rem';
-        document.body.appendChild(el);
+    // Optional indicator logic
+}
+
+function getData() {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { decks: [], subjects: [], topics: [] };
+
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) {
+        // Migration from legacy array
+        return { decks: parsed, subjects: [], topics: [] };
     }
-    el.innerText = active ? '🟢 Sincronizado (Servidor)' : '🟠 Modo Local (Navegador)';
-    el.style.background = active ? '#edfcf4' : '#fff0ee';
-    el.style.color = active ? '#23b26d' : '#ff725b';
-    */
+    return parsed;
 }
 
-function getDecks() {
-    const data = localStorage.getItem(STORAGE_KEY);
-    return data ? JSON.parse(data) : [];
-}
+async function saveData() {
+    const data = { decks, subjects, topics };
 
-async function saveDecks(decks) {
-    // 1. Save locally immediately for speed
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(decks));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 
-    // 2. If server is active, try to push
     if (usingServer || await isServerUp()) {
         try {
             await fetch(SERVER_URL, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(decks)
+                body: JSON.stringify(data)
             });
             usingServer = true;
         } catch (e) {
             usingServer = false;
-            console.error('Failed to sync to server');
         }
     }
 }
 
 async function isServerUp() {
     try {
-        // Quick check if we weren't connected but maybe now we are
         await fetch(SERVER_URL, { method: 'HEAD' });
         return true;
     } catch { return false; }
 }
 
-function loadLibrary() {
-    const decks = getDecks();
-    elements.decksGrid.innerHTML = '';
+// Category Management Functions
+async function addNewSubject() {
+    const name = elements.newSubjectName.value.trim();
+    const color = '#4255ff'; // Default since selector removed
 
-    if (decks.length === 0) {
-        elements.decksGrid.innerHTML = `
-            <div class="empty-state">
-                <p>No tienes mazos guardados aún</p>
-                <button id="btn-create-first-dynamic" class="btn-primary">Crear mi primer mazo</button>
-            </div>`;
-        document.getElementById('btn-create-first-dynamic').addEventListener('click', () => showScreen('import'));
+    if (!name) return alert('El nombre de la asignatura es obligatorio');
+
+    const newSubject = {
+        id: 'sub_' + Date.now(),
+        name: name,
+        color: color
+    };
+
+    subjects.push(newSubject);
+    await saveData();
+
+    elements.newSubjectName.value = '';
+    renderSubjectsManager();
+}
+
+async function removeSubject(id) {
+    if (!confirm('¿Eliminar esta asignatura? Los mazos asociados perderán la categoría.')) return;
+
+    subjects = subjects.filter(s => s.id !== id);
+    // Also remove associated topics
+    topics = topics.filter(t => t.subjectId !== id);
+
+    // Clear associations in decks
+    decks.forEach(d => {
+        if (d.subjectId === id) {
+            d.subjectId = null;
+            d.topicId = null;
+        }
+    });
+
+    await saveData();
+    renderSubjectsManager();
+}
+
+async function addNewTopic(subjectId) {
+    const name = prompt('Nombre del Tema:');
+    if (!name || !name.trim()) return;
+
+    const newTopic = {
+        id: 'top_' + Date.now(),
+        subjectId: subjectId,
+        name: name.trim()
+    };
+
+    topics.push(newTopic);
+    await saveData();
+    renderSubjectsManager();
+}
+
+async function removeTopic(id) {
+    if (!confirm('¿Eliminar este tema?')) return;
+    topics = topics.filter(t => t.id !== id);
+    decks.forEach(d => {
+        if (d.topicId === id) d.topicId = null;
+    });
+    await saveData();
+    renderSubjectsManager();
+}
+
+function renderSubjectsManager() {
+    elements.subjectsList.innerHTML = '';
+
+    if (subjects.length === 0) {
+        elements.subjectsList.innerHTML = '<p style="color:var(--text-secondary); text-align:center; padding:1rem;">No hay asignaturas creadas.</p>';
         return;
     }
 
-    decks.forEach(deck => {
-        const card = document.createElement('div');
-        card.className = 'deck-card';
+    subjects.forEach(subject => {
+        const item = document.createElement('div');
+        item.className = 'subject-item';
 
-        // Calculate progress
-        const total = deck.cards.length;
-        const knownCards = deck.stats && deck.stats.knownIds ? deck.stats.knownIds.length : 0;
-        const unknownCards = deck.stats && deck.stats.unknownIds ? deck.stats.unknownIds.length : 0;
-        const percent = total > 0 ? (knownCards / total) * 100 : 0;
+        // Filter topics for this subject
+        const subTopics = topics.filter(t => t.subjectId === subject.id);
 
-        card.innerHTML = `
-            <div class="deck-header">
-                <div class="deck-info">
-                    <div class="deck-title">${deck.title}</div>
-                    <div class="deck-count">${total} fichas</div>
+        item.innerHTML = `
+            <div class="subject-header">
+                <div class="subject-info">
+                    <div class="subject-color-dot" style="background-color: ${subject.color}"></div>
+                    <span>${subject.name}</span>
                 </div>
-                
-                <div class="deck-stats">
-                    <div class="stat-badge known" title="Dominadas">
-                        <span>✔ ${knownCards}</span>
-                    </div>
-                    <div class="stat-badge unknown" title="Por aprender">
-                        <span>✖ ${unknownCards}</span>
-                    </div>
-                </div>
-
-                <div class="deck-actions">
-                    <button class="btn-icon edit" title="Editar" data-id="${deck.id}">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
-                    </button>
-                    <button class="btn-icon delete" title="Eliminar" data-id="${deck.id}">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                <div class="subject-actions">
+                    <button class="btn-sm btn-secondary" onclick="window.requestAddTopic('${subject.id}')">+ Tema</button>
+                    <button class="btn-icon delete" onclick="window.requestDeleteSubject('${subject.id}')">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     </button>
                 </div>
             </div>
-            <div class="deck-progress-wrapper">
-                <div class="deck-progress-fill" style="width: ${percent}%"></div>
+            <div class="topics-container">
+                ${subTopics.map(topic => `
+                    <div class="topic-item">
+                        <span>${topic.name}</span>
+                        <button class="btn-icon delete" onclick="window.requestDeleteTopic('${topic.id}')">×</button>
+                    </div>
+                `).join('')}
+                ${subTopics.length === 0 ? '<div style="color:var(--text-secondary); font-size:0.8rem; padding:0.5rem 0;">Sin temas</div>' : ''}
             </div>
         `;
-
-        // click on card to play, but ignore if clicked on actions
-        card.addEventListener('click', (e) => {
-            if (e.target.closest('.btn-icon')) return;
-            startSession(deck);
-        });
-
-        // Add listeners to buttons manually to capture them before card click?
-        // Actually event delegation above is fine, we just need to handle logic here
-        const btnEdit = card.querySelector('.edit');
-        const btnDelete = card.querySelector('.delete');
-
-        btnEdit.addEventListener('click', (e) => {
-            e.stopPropagation();
-            editDeck(deck.id);
-        });
-
-        btnDelete.addEventListener('click', (e) => {
-            e.stopPropagation();
-            deleteDeck(deck.id);
-        });
-
-        elements.decksGrid.appendChild(card);
+        elements.subjectsList.appendChild(item);
     });
 }
 
-// Keyboard Shortcuts
-document.addEventListener('keydown', (e) => {
-    if (!screens.game.classList.contains('active')) return;
+// Global exposes for string onclicks
+window.requestAddTopic = addNewTopic;
+window.requestDeleteSubject = removeSubject;
+window.requestDeleteTopic = removeTopic;
 
-    // Space or Enter to flip
-    if (e.code === 'Space' || e.code === 'Enter') {
-        e.preventDefault(); // Prevent scrolling
-        handleFlip();
+
+// Main Logic & Library
+function loadLibrary() {
+    const data = getData();
+    decks = data.decks;
+    subjects = data.subjects;
+    topics = data.topics;
+
+    const grid = elements.subjectsGrid;
+    grid.innerHTML = '';
+
+    if (decks.length === 0 && subjects.length === 0) {
+        document.getElementById('empty-library-state').hidden = false;
+        elements.libraryContent.hidden = true;
+        return;
+    } else {
+        document.getElementById('empty-library-state').hidden = true;
+        elements.libraryContent.hidden = false;
     }
 
-    // Arrow Left: I don't know
-    if (e.code === 'ArrowLeft') {
-        handleChoice(false);
+    // Render Subjects as Cards
+    subjects.forEach(subject => {
+        const deckCount = decks.filter(d => d.subjectId === subject.id).length;
+
+        const card = document.createElement('div');
+        card.className = 'subject-card-btn';
+        card.innerHTML = `
+            <div class="subject-icon-large" style="color: ${subject.color}">📘</div>
+            <div class="subject-name-large">${subject.name}</div>
+            <div class="subject-deck-count">${deckCount} mazos</div>
+        `;
+
+        card.addEventListener('click', () => {
+            loadSubjectDetail(subject.id);
+        });
+
+        grid.appendChild(card);
+    });
+
+    // Handle Uncategorized Decks
+    const uncategorizedDecks = decks.filter(d => !d.subjectId);
+    if (uncategorizedDecks.length > 0) {
+        const card = document.createElement('div');
+        card.className = 'subject-card-btn';
+        card.innerHTML = `
+            <div class="subject-icon-large" style="color: var(--text-secondary)">📂</div>
+            <div class="subject-name-large">General</div>
+            <div class="subject-deck-count">${uncategorizedDecks.length} mazos</div>
+        `;
+
+        card.addEventListener('click', () => {
+            loadSubjectDetail(null); // null means General
+        });
+
+        grid.appendChild(card);
+    }
+}
+
+function loadSubjectDetail(subjectId) {
+    currentViewingSubjectId = subjectId;
+    const container = elements.subjectContent;
+    container.innerHTML = '';
+
+    let subject = null;
+    let relevantDecks = [];
+    let relevantTopics = [];
+
+    if (subjectId) {
+        subject = subjects.find(s => s.id === subjectId);
+        relevantDecks = decks.filter(d => d.subjectId === subjectId);
+        relevantTopics = topics.filter(t => t.subjectId === subjectId);
+
+        elements.subjectHeroTitle.innerText = subject.name;
+        // elements.subjectHeroIcon.style.color = subject.color; // Optional
+    } else {
+        elements.subjectHeroTitle.innerText = "General / Sin Categoría";
+        relevantDecks = decks.filter(d => !d.subjectId);
+        // No topics likely for general, unless floating topics allowed. Assuming strict hierarchy.
     }
 
-    // Arrow Right: I know
-    if (e.code === 'ArrowRight') {
-        handleChoice(true);
+    if (relevantDecks.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>No hay mazos en esta asignatura.</p></div>';
     }
-});
 
-// Functions
+    // Reuse logic to render sections (Topic -> Decks) or (Direct Decks)
+
+    // 1. Group by Topic (only if real subject)
+    const usedDeckIds = new Set();
+
+    if (relevantTopics.length > 0) {
+        relevantTopics.forEach(topic => {
+            const topicDecks = relevantDecks.filter(d => d.topicId === topic.id);
+            if (topicDecks.length > 0) {
+                topicDecks.forEach(d => usedDeckIds.add(d.id));
+
+                const topicSection = document.createElement('div');
+                topicSection.className = 'section-topic';
+                topicSection.style.marginLeft = '0'; // Reset margin as it is main view now
+                topicSection.innerHTML = `<div class="topic-title" style="font-size:1.2rem; border-bottom:1px solid #ffffff1a; padding-bottom:0.5rem; margin-bottom:1rem;">${topic.name}</div>`;
+
+                const grid = document.createElement('div');
+                grid.className = 'decks-grid';
+                topicDecks.forEach(d => grid.appendChild(createDeckCard(d)));
+
+                topicSection.appendChild(grid);
+                container.appendChild(topicSection);
+            }
+        });
+    }
+
+    // 2. Direct Decks (No Topic within Subject OR All General Decks)
+    const directDecks = relevantDecks.filter(d => !usedDeckIds.has(d.id));
+    if (directDecks.length > 0) {
+        const section = document.createElement('div');
+        section.className = 'section-topic';
+        section.style.marginLeft = '0';
+        // Only show header if we have mixed content (Topics + Direct), otherwise just grid
+        if (relevantTopics.length > 0 && subjectId) {
+            section.innerHTML = `<div class="topic-title" style="font-size:1.2rem; border-bottom:1px solid #ffffff1a; padding-bottom:0.5rem; margin-bottom:1rem;">Otros</div>`;
+        }
+
+        const grid = document.createElement('div');
+        grid.className = 'decks-grid';
+        directDecks.forEach(d => grid.appendChild(createDeckCard(d)));
+        section.appendChild(grid);
+        container.appendChild(section);
+    }
+
+    showScreen('subject');
+}
+
+function createDeckCard(deck) {
+    const card = document.createElement('div');
+    card.className = 'deck-card';
+
+    const total = deck.cards.length;
+    const knownCards = deck.stats && deck.stats.knownIds ? deck.stats.knownIds.length : 0;
+    const unknownCards = deck.stats && deck.stats.unknownIds ? deck.stats.unknownIds.length : 0;
+    const percent = total > 0 ? (knownCards / total) * 100 : 0;
+
+    card.innerHTML = `
+        <div class="deck-header">
+            <div class="deck-info">
+                <div class="deck-title">${deck.title}</div>
+                <div class="deck-count">${total} fichas</div>
+            </div>
+            
+            <div class="deck-stats">
+                <div class="stat-badge known" title="Dominadas">
+                    <span>✔ ${knownCards}</span>
+                </div>
+                <div class="stat-badge unknown" title="Por aprender">
+                    <span>✖ ${unknownCards}</span>
+                </div>
+            </div>
+
+            <div class="deck-actions">
+                <button class="btn-icon edit" title="Editar" data-id="${deck.id}">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+                </button>
+                <button class="btn-icon delete" title="Eliminar" data-id="${deck.id}">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                </button>
+            </div>
+        </div>
+        <div class="deck-progress-wrapper">
+            <div class="deck-progress-fill" style="width: ${percent}%"></div>
+        </div>
+    `;
+
+    card.addEventListener('click', (e) => {
+        if (e.target.closest('.btn-icon')) return;
+        startSession(deck);
+    });
+
+    const btnEdit = card.querySelector('.edit');
+    const btnDelete = card.querySelector('.delete');
+
+    btnEdit.addEventListener('click', (e) => {
+        e.stopPropagation();
+        editDeck(deck.id);
+    });
+    btnDelete.addEventListener('click', (e) => {
+        e.stopPropagation();
+        deleteDeck(deck.id);
+    });
+
+    return card;
+}
+
 function showScreen(screenName) {
-    // Hide all
     Object.values(screens).forEach(s => s.classList.remove('active'));
-    // Show target
     screens[screenName].classList.add('active');
 
-    // Toggle nav buttons
-    elements.btnLibraryNav.hidden = (screenName === 'library');
+    elements.btnLibraryNav.hidden = (screenName === 'library' || screenName === 'subject');
     elements.btnImportNav.hidden = (screenName === 'import');
+
+    // Auto-update setup if shown
+    if (screenName === 'setup') {
+        renderSubjectsManager();
+    }
 }
 
 function toggleImportMode(type) {
@@ -312,21 +561,59 @@ function toggleImportMode(type) {
         if (elements.flashcardSection) elements.flashcardSection.hidden = true;
 
         elements.testBuilderContainer.hidden = false;
-        // Init builder if empty
-        if (builderCards.length === 0) {
-            addBuilderQuestion(); // Add one default
-        }
+        if (builderCards.length === 0) addBuilderQuestion();
     } else {
-        // Flashcard Mode
         if (elements.flashcardSection) elements.flashcardSection.hidden = false;
         if (elements.simpleImportGroup) elements.simpleImportGroup.hidden = true;
         elements.testBuilderContainer.hidden = true;
-
-        // Init visual builder if empty
-        if (visualFlashcards.length === 0) {
-            addVisualFlashcard();
-        }
+        if (visualFlashcards.length === 0) addVisualFlashcard();
     }
+}
+
+function populateSubjectsSelect(selectedId = null) {
+    const sel = elements.deckSubject;
+    sel.innerHTML = '<option value="">Selecciona una asignatura...</option>';
+
+    subjects.forEach(sub => {
+        const opt = document.createElement('option');
+        opt.value = sub.id;
+        opt.innerText = sub.name;
+        sel.appendChild(opt);
+    });
+
+    if (selectedId) {
+        sel.value = selectedId;
+        populateTopicsSelect(selectedId);
+    } else {
+        // Reset topic
+        populateTopicsSelect(null);
+    }
+}
+
+function populateTopicsSelect(subjectId, selectedTopicId = null) {
+    const selTopic = elements.deckTopic;
+    selTopic.innerHTML = '<option value="">Tema (Opcional)</option>';
+
+    if (!subjectId) {
+        selTopic.disabled = true;
+        return;
+    }
+
+    const subTopics = topics.filter(t => t.subjectId === subjectId);
+    if (subTopics.length === 0) {
+        selTopic.disabled = true;
+        return;
+    }
+
+    selTopic.disabled = false;
+    subTopics.forEach(top => {
+        const opt = document.createElement('option');
+        opt.value = top.id;
+        opt.innerText = top.name;
+        selTopic.appendChild(opt);
+    });
+
+    if (selectedTopicId) selTopic.value = selectedTopicId;
 }
 
 function resetImportScreen() {
@@ -334,13 +621,14 @@ function resetImportScreen() {
     elements.importText.value = '';
     elements.deckTitle.value = '';
 
-    // Reset Radio to default
+    // Populate Selects
+    populateSubjectsSelect();
+
     const radios = document.getElementsByName('deck-type');
     if (radios.length > 0) radios[0].checked = true;
 
     toggleImportMode('flashcard');
 
-    // Reset Visual Flashcards
     visualFlashcards = [];
     activeFlashcardTab = 'text';
     switchFlashcardTab('text');
@@ -349,7 +637,6 @@ function resetImportScreen() {
     builderCards = [];
     renderBuilder();
 
-    // Reset UI texts
     const h1 = document.querySelector('#import-screen h1');
     const p = document.querySelector('#import-screen p');
     if (h1) h1.innerText = 'Crear nuevo mazo';
@@ -358,16 +645,20 @@ function resetImportScreen() {
 }
 
 function editDeck(id) {
-    const decks = getDecks();
-    const deck = decks.find(d => d.id === id);
+    const data = getData();
+    const deck = data.decks.find(d => d.id === id);
     if (!deck) return;
 
     editingDeckId = id;
-
-    // Pre-fill Title
     elements.deckTitle.value = deck.title;
 
-    // Set Radio
+    // Init Subjects/Topics
+    populateSubjectsSelect(deck.subjectId);
+    // Wait for populateSubjects to trigger populateTopics if dependent, but we called it manually above
+    if (deck.subjectId && deck.topicId) {
+        populateTopicsSelect(deck.subjectId, deck.topicId);
+    }
+
     const type = deck.type || 'flashcard';
     const radios = document.getElementsByName('deck-type');
     for (const r of radios) {
@@ -376,30 +667,17 @@ function editDeck(id) {
     toggleImportMode(type);
 
     if (type === 'flashcard') {
-        // Clear Text Area to avoid duplication on save
         elements.importText.value = '';
-
-        // Populate Visual Builder
-        // Ensure deep copy to avoid reference issues
         visualFlashcards = deck.cards.map(c => ({
             id: c.id,
             term: c.term,
             definition: c.definition
         }));
-
         renderFlashcardBuilder();
-
-        // Populate text area from visual so both are full
         syncFlashcardState('visual');
-
-        // Switch to Visual Tab so user sees the data immediately
         switchFlashcardTab('visual');
-
     } else {
-        // Test Builder Mode
-        // Populate Builder Cards
         builderCards = deck.cards.map(c => {
-            // Deep copy of options
             const opts = c.options ? c.options.map(o => ({ ...o })) : [];
             return {
                 id: c.id,
@@ -411,7 +689,6 @@ function editDeck(id) {
         renderBuilder();
     }
 
-    // Update UI texts to indicate editing
     const h1 = document.querySelector('#import-screen h1');
     const p = document.querySelector('#import-screen p');
     if (h1) h1.innerText = 'Editar mazo';
@@ -419,34 +696,33 @@ function editDeck(id) {
     if (elements.btnSave) elements.btnSave.innerText = 'Guardar Cambios';
 
     showScreen('import');
-
 }
 
 async function deleteDeck(id) {
-    if (!confirm('¿Estás seguro de que quieres eliminar este mazo? Esta acción no se puede deshacer.')) return;
-
-    let decks = getDecks();
+    if (!confirm('¿Estás seguro de que quieres eliminar este mazo?')) return;
     decks = decks.filter(d => d.id !== id);
-    await saveDecks(decks);
-    loadLibrary();
+    await saveData();
+
+    // Refresh current view if needed
+    if (screens.subject.classList.contains('active')) {
+        loadSubjectDetail(currentViewingSubjectId);
+    } else {
+        loadLibrary();
+    }
 }
 
 async function handleSaveAndStart() {
     const title = elements.deckTitle.value.trim() || 'Sin Título';
     const type = document.querySelector('input[name="deck-type"]:checked').value;
+    const subjectId = elements.deckSubject.value;
+    const topicId = !elements.deckTopic.disabled ? elements.deckTopic.value : null;
 
     let newCards = [];
 
     if (type === 'flashcard') {
-        // Sync before saving based on active tab to ensure consistency
-        if (activeFlashcardTab === 'text') {
-            syncFlashcardState('text');
-        } else {
-            syncFlashcardState('visual');
-        }
+        if (activeFlashcardTab === 'text') syncFlashcardState('text');
+        else syncFlashcardState('visual');
 
-        // Use visualFlashcards as the single source of truth (since it's now synced)
-        // Filter empty
         newCards = visualFlashcards
             .filter(c => c.term.trim() !== '' && c.definition.trim() !== '')
             .map((c, index) => ({
@@ -454,26 +730,16 @@ async function handleSaveAndStart() {
                 term: c.term,
                 definition: c.definition
             }));
-
         if (newCards.length === 0) return alert('Por favor ingresa algunas fichas válidas.');
     } else {
-        // Builder Mode
-        // Validate
         const validCards = builderCards.filter(c => c.term.trim() !== '');
         if (validCards.length === 0) return alert('Por favor añade al menos una pregunta.');
 
-        // Construct cards
         newCards = validCards.map((c, index) => {
-            // Filter empty options
             const validOptions = c.options.filter(o => o.text.trim() !== '');
-            // Check if correct is set
             if (!validOptions.some(o => o.isCorrect)) {
-                // If unset, maybe set first as correct? Or alert?
-                // Let's set first as correct for safety if exists
                 if (validOptions.length > 0) validOptions[0].isCorrect = true;
             }
-
-            // Definition is technically the correct answer for legacy compt
             const correctOpt = validOptions.find(o => o.isCorrect);
             const def = correctOpt ? correctOpt.text : '???';
 
@@ -489,24 +755,24 @@ async function handleSaveAndStart() {
 
     if (newCards.length === 0) return alert('No se encontraron fichas válidas.');
 
-    const decks = getDecks();
-
     if (editingDeckId) {
-        // Update existing deck
         const deckIndex = decks.findIndex(d => d.id === editingDeckId);
         if (deckIndex > -1) {
             decks[deckIndex].title = title;
             decks[deckIndex].type = type;
             decks[deckIndex].cards = newCards;
-            decks[deckIndex].stats = { knownIds: [], unknownIds: [] }; // Reset stats on full edit
+            decks[deckIndex].subjectId = subjectId;
+            decks[deckIndex].topicId = topicId;
+            decks[deckIndex].stats = { knownIds: [], unknownIds: [] };
         }
     } else {
-        // Create new
         const newDeck = {
             id: Date.now(),
             title: title,
             type: type,
             cards: newCards,
+            subjectId: subjectId,
+            topicId: topicId,
             stats: {
                 knownIds: [],
                 unknownIds: []
@@ -515,24 +781,11 @@ async function handleSaveAndStart() {
         decks.push(newDeck);
     }
 
-    await saveDecks(decks);
+    await saveData();
+    resetImportScreen();
 
-    // Clear inputs
-    resetImportScreen(); // Also clears editingDeckId
-
-    // If we were editing, maybe go back to library? Or start playing?
-    // "Guardar y Estudiar" implies playing.
-    // Let's start playing the deck we just saved.
-    // If we edited, we want to see it.
-    // Re-fetch the saved deck
-    const savedDeck = editingDeckId ? decks.find(d => d.id === editingDeckId) : decks[decks.length - 1]; // This logic is slightly flawed if async write but we await saveDecks
-    // Actually safe because saveDecks updates cachedDecks sync before write
-
-    // Try to find the deck with the Title we just set if it was new, or ID if edited.
-    // Just find by ID/Ref.
-    // If it was new, it is last pushed.
+    // Find doc to play
     const deckToPlay = editingDeckId ? decks.find(d => d.id === editingDeckId) : decks[decks.length - 1];
-
     startSession(deckToPlay);
 }
 
@@ -541,12 +794,11 @@ function startSession(deck) {
     currentDeckType = deck.type || 'flashcard';
     allCards = deck.cards;
 
-    // Toggle UI based on type
     if (currentDeckType === 'test') {
         elements.flashcardContainer.hidden = true;
         elements.controls.hidden = true;
         elements.testContainer.hidden = false;
-        elements.testContainer.style.display = 'flex'; // Ensure flex
+        elements.testContainer.style.display = 'flex';
     } else {
         elements.flashcardContainer.hidden = false;
         elements.controls.hidden = false;
@@ -554,33 +806,22 @@ function startSession(deck) {
         elements.testContainer.style.display = 'none';
     }
 
-    // Load progress
-    // If we want to resume where we left off (only showing unknown cards)
-    // For now, let's load ALL cards, but visually or logically prioritize unknowns?
-    // User requested: "se vuelve a preguntar...".
-    // Let's implement this: "Queue" is initially (All Cards) - (Known Cards).
-    // If everything is known, maybe reset? Or ask?
-    // Let's standard Quizlet behavior: Start with everything, but prioritize unknowns.
-    // Simplifying: Just load everything for now, but mark knowns as done if we wanted.
-    // Actually, user wants "Guardar progreso". So if I learned it, I shouldn't see it immediately again?
-
     const knownIds = deck.stats ? deck.stats.knownIds : [];
-
-    // Filter out known cards for the queue?
-    // If I want to "Practice", I usually want to practice what I don't know.
     const unknownCards = allCards.filter(c => !knownIds.includes(c.id));
 
     if (unknownCards.length === 0 && allCards.length > 0) {
-        // All learned! Ask if want to restart?
         if (confirm('¡Felicidades! Has dominado este mazo. ¿Quieres repasar todas las fichas de nuevo?')) {
-            // Reset stats for this session (or permanently?) 
-            // Let's reset permanently for "Restart"
             resetDeckProgress(deck.id);
             queue = [...allCards];
         } else {
-            // Go back to library
-            loadLibrary();
-            showScreen('library');
+            // Return to where we came from? 
+            // For simplicity, return to Subject View if possible, else Library
+            if (currentViewingSubjectId !== undefined) {
+                loadSubjectDetail(currentViewingSubjectId);
+            } else {
+                loadLibrary();
+                showScreen('library');
+            }
             return;
         }
     } else {
@@ -588,12 +829,7 @@ function startSession(deck) {
     }
 
     knownCount = knownIds.length;
-
-    knownCount = knownIds.length;
-
-    // Shuffle cards initially
     shuffleArray(queue);
-
     nextRoundQueue = [];
     updateProgress();
     loadNextCard();
@@ -601,70 +837,52 @@ function startSession(deck) {
 }
 
 async function resetDeckProgress(deckId) {
-    const decks = getDecks();
     const deck = decks.find(d => d.id === deckId);
     if (deck) {
         deck.stats = { knownIds: [], unknownIds: [] };
-        await saveDecks(decks);
+        await saveData();
         knownCount = 0;
     }
 }
 
 async function saveProgress(cardId, isKnown) {
     if (!currentDeckId) return;
-
-    const decks = getDecks();
     const deck = decks.find(d => d.id === currentDeckId);
     if (!deck) return;
 
     if (!deck.stats) deck.stats = { knownIds: [], unknownIds: [] };
 
     if (isKnown) {
-        if (!deck.stats.knownIds.includes(cardId)) {
-            deck.stats.knownIds.push(cardId);
-        }
-        // Remove from unknown if present
+        if (!deck.stats.knownIds.includes(cardId)) deck.stats.knownIds.push(cardId);
         const uIndex = deck.stats.unknownIds.indexOf(cardId);
         if (uIndex > -1) deck.stats.unknownIds.splice(uIndex, 1);
     } else {
-        // Add to unknown
-        if (!deck.stats.unknownIds.includes(cardId)) {
-            deck.stats.unknownIds.push(cardId);
-        }
-        // Remove from known if present
+        if (!deck.stats.unknownIds.includes(cardId)) deck.stats.unknownIds.push(cardId);
         const kIndex = deck.stats.knownIds.indexOf(cardId);
         if (kIndex > -1) deck.stats.knownIds.splice(kIndex, 1);
     }
-
-    await saveDecks(decks);
+    await saveData();
 }
-
 
 function loadNextCard() {
     if (queue.length === 0) {
         handleRoundEnd();
         return;
     }
-
     currentCard = queue.shift();
     isFlipped = false;
 
-    if (currentDeckType === 'test') {
-        renderTestCard();
-    } else {
+    if (currentDeckType === 'test') renderTestCard();
+    else {
         elements.flashcard.classList.remove('flipped');
         elements.cardFrontText.innerText = currentCard.term;
         elements.cardBackText.innerText = currentCard.definition;
     }
-
     updateProgress();
 }
 
 function renderTestCard() {
-    // 1. Set Question
     elements.testQuestion.innerText = currentCard.term;
-
-    // 2. Clear Options and Explanation
     elements.testOptions.innerHTML = '';
     if (elements.explanationBox) {
         elements.explanationBox.hidden = true;
@@ -672,82 +890,66 @@ function renderTestCard() {
     }
 
     let options = [];
-
-    // Check if card has custom options (Builder created)
     if (currentCard.options && currentCard.options.length > 0) {
-        options = currentCard.options.map(o => ({ ...o })); // Deep copy options
+        options = currentCard.options.map(o => ({ ...o }));
     } else {
-        // Legacy/Flashcard Mode: Generate Distractors
         const potentialDistractors = allCards.filter(c => c.id !== currentCard.id);
         shuffleArray(potentialDistractors);
         const distractors = potentialDistractors.slice(0, 3);
-
         options = [
             { text: currentCard.definition, isCorrect: true },
             ...distractors.map(d => ({ text: d.definition, isCorrect: false }))
         ];
     }
-
-    // 5. Shuffle options so correct isn't always first
     shuffleArray(options);
 
-    // 6. Render Buttons
     options.forEach(opt => {
         const btn = document.createElement('button');
         btn.className = 'option-btn';
         btn.innerText = opt.text;
-
         btn.addEventListener('click', () => {
-            // Disable all buttons to prevent double click
             const allBtns = elements.testOptions.querySelectorAll('button');
             allBtns.forEach(b => b.disabled = true);
 
             if (opt.isCorrect) {
                 btn.classList.add('correct');
-                
-                let delay = 600; // Base delay
-
-                // Show Explanation if valid
+                let delay = 600;
                 if (currentCard.explanation && currentCard.explanation.trim() !== '') {
                     if (elements.explanationBox) {
                         elements.explanationBox.innerText = currentCard.explanation;
                         elements.explanationBox.hidden = false;
-                        
-                        // Dynamic delay: 1500ms base + 40ms per char
-                        // Example: 100 chars = 1500 + 4000 = 5.5s
                         delay = 1500 + (currentCard.explanation.length * 40);
                     }
                 }
-
                 setTimeout(() => handleChoice(true), delay);
             } else {
                 btn.classList.add('wrong');
-                // Highlight correct one
-                // Logic relies on currentCard.definition matching the correct button text
-                const correctBtn = Array.from(allBtns).find(b => b.innerText === currentCard.definition);
-                if (correctBtn) correctBtn.classList.add('correct');
-
-                setTimeout(() => handleChoice(false), 1500); // Longer wait to see correction
+                // Fallback attempt to find correct btn
+                if (currentCard.options) {
+                    const realCorrect = currentCard.options.find(o => o.isCorrect);
+                    if (realCorrect) {
+                        const realBtn = Array.from(allBtns).find(b => b.innerText === realCorrect.text);
+                        if (realBtn) realBtn.classList.add('correct');
+                    }
+                } else {
+                    const correctBtn = Array.from(allBtns).find(b => b.innerText === currentCard.definition);
+                    if (correctBtn) correctBtn.classList.add('correct');
+                }
+                setTimeout(() => handleChoice(false), 1500);
             }
         });
-
         elements.testOptions.appendChild(btn);
     });
 }
 
 function handleFlip() {
     isFlipped = !isFlipped;
-    if (isFlipped) {
-        elements.flashcard.classList.add('flipped');
-    } else {
-        elements.flashcard.classList.remove('flipped');
-    }
+    if (isFlipped) elements.flashcard.classList.add('flipped');
+    else elements.flashcard.classList.remove('flipped');
 }
 
 async function handleChoice(known) {
     if (!currentCard || elements.flashcard.classList.contains('animating')) return;
-
-    // Mark as animating to prevent double clicks
     elements.flashcard.classList.add('animating');
 
     async function proceed() {
@@ -755,26 +957,21 @@ async function handleChoice(known) {
             knownCount++;
             await saveProgress(currentCard.id, true);
         } else {
-            // Unknows are just kept in usage loop
             await saveProgress(currentCard.id, false);
             nextRoundQueue.push(currentCard);
         }
-
         loadNextCard();
     }
 
-    // Only animate flashcard if visible (Deck Type check)
     if (currentDeckType !== 'test') {
         const animationClass = known ? 'slide-right' : 'slide-left';
         elements.flashcard.classList.add(animationClass);
-
         setTimeout(async () => {
             elements.flashcard.classList.remove('animating', animationClass, 'flipped');
-            isFlipped = false; // Reset flip state
+            isFlipped = false;
             await proceed();
         }, 300);
     } else {
-        // Immediate (or already delayed by button click handler)
         elements.flashcard.classList.remove('animating');
         await proceed();
     }
@@ -782,84 +979,57 @@ async function handleChoice(known) {
 
 function handleRoundEnd() {
     if (nextRoundQueue.length > 0) {
-        // If there are unknown cards, do we restart immediately or ask?
-        // User said: "se vuelve a preguntar al final".
-        // This validates the "Round 2" logic.
-        // Let's automatically start the next round with unknown cards?
-        // OR show a notification?
-        // For now, just continue silently or maybe flash a message.
-        // Let's Continue.
         queue = [...nextRoundQueue];
         nextRoundQueue = [];
-        // Optional: Shuffle the unknowns
         shuffleArray(queue);
         loadNextCard();
     } else {
-        // Truly finished
         showResults();
     }
 }
 
 function showResults() {
-    elements.statKnown.innerText = allCards.length; // If finished, you theoretically know them all eventually? 
-    // Or should it show the stats of the FIRST round?
-    // Simpler: Show total cards vs missed count (from the last round? or cumulative?)
-    // Let's just show "Finished".
-    // The stats box in HTML implies "Known" and "Unknown".
-    // If we finished, Unknown is 0.
-
     elements.statKnown.innerText = allCards.length;
     elements.statUnknown.innerText = 0;
-
     showScreen('result');
 }
 
 function restart(mode) {
     if (!currentDeckId) return;
-    const decks = getDecks();
     const deck = decks.find(d => d.id === currentDeckId);
     if (!deck) return;
 
     if (mode === 'all') {
-        // Reset everything
         resetDeckProgress(currentDeckId);
-        startSession(deck);
-    } else if (mode === 'unknown') {
-        // Just continue with unknown (startSession handles this filtering automatically)
         startSession(deck);
     }
 }
 
 function updateProgress() {
     if (!currentDeckId) return;
-    const decks = getDecks();
     const deck = decks.find(d => d.id === currentDeckId);
     if (!deck) return;
 
     const kCount = deck.stats && deck.stats.knownIds ? deck.stats.knownIds.length : 0;
     const uCount = deck.stats && deck.stats.unknownIds ? deck.stats.unknownIds.length : 0;
 
-    // Update Side Counters with persistent data
     elements.counterKnownVal.innerText = kCount;
     elements.counterUnknownVal.innerText = uCount;
 
-    // Remaining in session
     elements.currentCount.innerText = allCards.length - (queue.length + nextRoundQueue.length);
     elements.totalCount.innerText = allCards.length;
 
-    // Update Bar (Global Mastery)
     const total = allCards.length;
     const percent = total > 0 ? (kCount / total) * 100 : 0;
     elements.progressBar.style.width = `${percent}%`;
 }
 
-// Backup Logic
+// Backup Logic (Keep Export/Import as is mostly)
 function handleExport() {
-    const decks = getDecks();
-    const dataStr = JSON.stringify(decks, null, 2);
+    const data = getData();
+    const dataStr = JSON.stringify(data, null, 2);
     const blob = new Blob([dataStr], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-
     const a = document.createElement('a');
     a.href = url;
     a.download = `quizclone_backup_${new Date().toISOString().slice(0, 10)}.json`;
@@ -872,34 +1042,40 @@ function handleExport() {
 async function handleImport(event) {
     const file = event.target.files[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = async function (e) {
         try {
-            const data = JSON.parse(e.target.result);
+            let data = JSON.parse(e.target.result);
             if (Array.isArray(data)) {
-                if (confirm('Esto reemplazará tu biblioteca actual. ¿Estás seguro?')) {
-                    await saveDecks(data);
+                // Migrate
+                data = { decks: data, subjects: [], topics: [] };
+            }
+            if (confirm('Esto reemplazará tu biblioteca actual. ¿Estás seguro?')) {
+                decks = data.decks || [];
+                subjects = data.subjects || [];
+                topics = data.topics || [];
+                await saveData();
+
+                // Reload
+                if (subjects.length === 0) {
+                    renderSubjectsManager();
+                    showScreen('setup');
+                } else {
                     loadLibrary();
-                    alert('¡Biblioteca importada con éxito!');
                 }
-            } else {
-                alert('El archivo no tiene el formato correcto.');
+                alert('¡Biblioteca importada con éxito!');
             }
         } catch (err) {
             alert('Error al leer el archivo. Asegúrate de que sea un JSON válido.');
-            console.error(err);
         }
-        // Reset input
         elements.fileImport.value = '';
     };
     reader.readAsText(file);
 }
 
-// Builder Logic
+// Builder Helpers
 function renderBuilder() {
     elements.builderList.innerHTML = '';
-
     builderCards.forEach((card, qIndex) => {
         const cardEl = document.createElement('div');
         cardEl.className = 'question-card';
@@ -913,7 +1089,6 @@ function renderBuilder() {
                 </div>
                 <input type="text" class="question-input-title" value="${card.term}" placeholder="Escribe tu pregunta..." onchange="updateBuilderCard(${qIndex}, 'term', this.value)">
             </div>
-            
             <div class="options-list">
                 ${card.options.map((opt, oIndex) => `
                     <div class="option-row">
@@ -929,7 +1104,6 @@ function renderBuilder() {
                    Agregar opción
                 </button>
             </div>
-            
             <div class="explanation-field">
                 <textarea class="explanation-input" placeholder="Explicación de la respuesta (opcional)" onchange="updateBuilderCard(${qIndex}, 'explanation', this.value)">${card.explanation || ''}</textarea>
             </div>
@@ -937,66 +1111,30 @@ function renderBuilder() {
         elements.builderList.appendChild(cardEl);
     });
 }
-
 function addBuilderQuestion() {
-    builderCards.push({
-        id: Date.now(),
-        term: '',
-        explanation: '',
-        options: [
-            { text: '', isCorrect: true },
-            { text: '', isCorrect: false }
-        ]
-    });
+    builderCards.push({ id: Date.now(), term: '', explanation: '', options: [{ text: '', isCorrect: true }, { text: '', isCorrect: false }] });
     renderBuilder();
 }
-
 function removeBuilderQuestion(index) {
-    if (confirm('¿Eliminar pregunta?')) {
-        builderCards.splice(index, 1);
-        renderBuilder();
-    }
+    if (confirm('¿Eliminar pregunta?')) { builderCards.splice(index, 1); renderBuilder(); }
 }
-
-function updateBuilderCard(index, field, value) {
-    builderCards[index][field] = value;
-}
-
-function addBuilderOption(qIndex) {
-    builderCards[qIndex].options.push({ text: '', isCorrect: false });
-    renderBuilder();
-}
-
+function updateBuilderCard(index, field, value) { builderCards[index][field] = value; }
+function addBuilderOption(qIndex) { builderCards[qIndex].options.push({ text: '', isCorrect: false }); renderBuilder(); }
 function removeBuilderOption(qIndex, oIndex) {
-    if (builderCards[qIndex].options.length <= 1) return; // Prevent empty list
-
-    // Confirmation
+    if (builderCards[qIndex].options.length <= 1) return;
     if (!confirm('¿Seguro que quieres borrar esta opción?')) return;
-
     builderCards[qIndex].options.splice(oIndex, 1);
-
-    // Ensure one is correct
-    if (!builderCards[qIndex].options.some(o => o.isCorrect)) {
-        builderCards[qIndex].options[0].isCorrect = true;
-    }
-
+    if (!builderCards[qIndex].options.some(o => o.isCorrect)) builderCards[qIndex].options[0].isCorrect = true;
     renderBuilder();
 }
-
 function updateBuilderOption(qIndex, oIndex, field, value) {
     if (field === 'isCorrect') {
-        // Unset others
         builderCards[qIndex].options.forEach(o => o.isCorrect = false);
         builderCards[qIndex].options[oIndex].isCorrect = true;
     } else {
         builderCards[qIndex].options[oIndex][field] = value;
     }
-    // Re-render only if needed, but changing text uses onchange so no full re-render needed to keep focus.
-    // However, radio change might need visual update? 
-    // Actually, native radio behavior handles the check visual, we just updated state. 
-    // BUT we need to sync state correctly.
 }
-// Expose to window for onclick handlers in HTML string
 window.removeBuilderQuestion = removeBuilderQuestion;
 window.updateBuilderCard = updateBuilderCard;
 window.addBuilderOption = addBuilderOption;
@@ -1010,55 +1148,35 @@ function shuffleArray(array) {
     }
 }
 
-// Visual Flashcard Builder Functions
 function syncFlashcardState(fromMode) {
     if (fromMode === 'text') {
         const text = elements.importText.value.trim();
         if (!text) {
-            // Only clear if empty, but be careful not to wipe if user just cleared text to start over?
-            // Yes, syncing means mirroring.
             visualFlashcards = [];
         } else {
             const lines = text.split('\n');
-            visualFlashcards = lines.map((line, index) => {
-                const commaIndex = line.indexOf(',');
-                let term = line;
+            visualFlashcards = lines.map((lines, index) => {
+                const commaIndex = lines.indexOf(',');
+                let term = lines;
                 let def = '';
                 if (commaIndex > -1) {
-                    term = line.substring(0, commaIndex).trim();
-                    def = line.substring(commaIndex + 1).trim();
+                    term = lines.substring(0, commaIndex).trim();
+                    def = lines.substring(commaIndex + 1).trim();
                 }
-                // Determine ID: try to keep existing if possible? Hard with text parsing.
-                // Just new IDs or temp IDs.
-                return {
-                    id: Date.now() + index,
-                    term: term,
-                    definition: def
-                };
+                return { id: Date.now() + index, term: term, definition: def };
             }).filter(c => c.term || c.definition);
         }
         renderFlashcardBuilder();
     } else {
-        // From Visual to Text
-        const text = visualFlashcards
-            .filter(c => c.term || c.definition)
-            .map(c => `${c.term}, ${c.definition}`)
-            .join('\n');
+        const text = visualFlashcards.filter(c => c.term || c.definition).map(c => `${c.term}, ${c.definition}`).join('\n');
         elements.importText.value = text;
     }
 }
 
 function switchFlashcardTab(tab) {
-    // Sync before switching
-    if (activeFlashcardTab === 'text' && tab === 'visual') {
-        syncFlashcardState('text');
-    } else if (activeFlashcardTab === 'visual' && tab === 'text') {
-        syncFlashcardState('visual');
-    }
-
+    if (activeFlashcardTab === 'text' && tab === 'visual') syncFlashcardState('text');
+    else if (activeFlashcardTab === 'visual' && tab === 'text') syncFlashcardState('visual');
     activeFlashcardTab = tab;
-    // Update Tabs UI
-
     if (tab === 'text') {
         elements.tabText.classList.add('active');
         elements.tabVisual.classList.remove('active');
@@ -1073,31 +1191,25 @@ function switchFlashcardTab(tab) {
         elements.flashcardTextContainer.classList.remove('active');
         elements.flashcardVisualContainer.hidden = false;
         elements.flashcardVisualContainer.classList.add('active');
-
-        // Init if empty
         if (visualFlashcards.length === 0) addVisualFlashcard();
     }
 }
 
 function renderFlashcardBuilder() {
     elements.flashcardList.innerHTML = '';
-
     visualFlashcards.forEach((card, index) => {
         const row = document.createElement('div');
         row.className = 'flashcard-row';
         row.innerHTML = `
             <div class="flashcard-row-number">${index + 1}</div>
-            
             <div class="flashcard-input-group">
                 <input type="text" class="flashcard-input" placeholder="Término" value="${card.term}" onchange="updateVisualFlashcard(${index}, 'term', this.value)">
                 <span class="flashcard-input-label">TÉRMINO</span>
             </div>
-            
             <div class="flashcard-input-group">
                 <input type="text" class="flashcard-input" placeholder="Definición" value="${card.definition}" onchange="updateVisualFlashcard(${index}, 'definition', this.value)">
                 <span class="flashcard-input-label">DEFINICIÓN</span>
             </div>
-
             <button class="btn-delete-row" title="Eliminar ficha" onclick="removeVisualFlashcard(${index})">
                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
             </button>
@@ -1105,40 +1217,15 @@ function renderFlashcardBuilder() {
         elements.flashcardList.appendChild(row);
     });
 }
-
-function addVisualFlashcard() {
-    visualFlashcards.push({
-        id: Date.now(),
-        term: '',
-        definition: ''
-    });
-    renderFlashcardBuilder();
-}
-
+function addVisualFlashcard() { visualFlashcards.push({ id: Date.now(), term: '', definition: '' }); renderFlashcardBuilder(); }
 function removeVisualFlashcard(index) {
-    // If it's the only card and it's completely empty, just reset/ignore
-    if (visualFlashcards.length === 1 && !visualFlashcards[0].term.trim() && !visualFlashcards[0].definition.trim()) {
-        return;
-    }
-
-    // Always confirm deletion for safety
+    if (visualFlashcards.length === 1 && !visualFlashcards[0].term.trim() && !visualFlashcards[0].definition.trim()) return;
     if (!confirm('¿Seguro que quieres borrar esta ficha?')) return;
-
     visualFlashcards.splice(index, 1);
-
-    // If we deleted the last one, add a new empty one immediately
-    if (visualFlashcards.length === 0) {
-        addVisualFlashcard();
-    } else {
-        renderFlashcardBuilder();
-    }
+    if (visualFlashcards.length === 0) addVisualFlashcard();
+    else renderFlashcardBuilder();
 }
-
-function updateVisualFlashcard(index, field, value) {
-    visualFlashcards[index][field] = value;
-}
-
-// Window exports
+function updateVisualFlashcard(index, field, value) { visualFlashcards[index][field] = value; }
 window.switchFlashcardTab = switchFlashcardTab;
 window.addVisualFlashcard = addVisualFlashcard;
 window.removeVisualFlashcard = removeVisualFlashcard;
