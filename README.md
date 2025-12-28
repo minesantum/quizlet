@@ -32,9 +32,15 @@ Esta es una aplicación web local, ligera y potente para estudiar. Ofrece herram
     *   **Estudio**: Muestra tus opciones personalizadas tal como las creaste.
     *   **Flashcard Híbrido**: Si la pregunta no tiene opciones definidas, la app genera distracciones inteligentes automáticamente basándose en otras cartas del mazo.
 
+### 🗂️ Organización por Asignaturas (¡NUEVO!)
+*   **Jerarquía Completa**: Crea **Asignaturas** (con colores personalizados) y dentro de ellas organiza tus mazos en **Temas**.
+*   **Navegación Visual**: Nueva pantalla de inicio con tarjetas grandes para cada asignatura, aprovechando todo el ancho de tu pantalla.
+*   **Vista Detallada**: Entra en cada asignatura para ver tus mazos agrupados perfectamente por temas.
+*   **Setup Inicial**: Asistente de configuración al abrir la app por primera vez para crear tus materias de estudio.
+
 ### 💻 General
 *   **Interfaz Premium**: Diseño oscuro, moderno y limpio (Microsoft Forms / Quizlet style).
-*   **Biblioteca Organizada**: Visualiza tus mazos, progreso (dominadas vs por aprender) y edítalos fácilmente.
+*   **Biblioteca Organizada**: Ya no es una lista infinita. Ahora tus mazos viven ordenados dentro de sus respectivas asignaturas.
 *   **Sin Internet**: Todo funciona 100% en local.
 
 ## 🛠️ Tecnologías
