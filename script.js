@@ -1087,13 +1087,13 @@ function renderBuilder() {
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                     </button>
                 </div>
-                <input type="text" class="question-input-title" value="${card.term}" placeholder="Escribe tu pregunta..." onchange="updateBuilderCard(${qIndex}, 'term', this.value)">
+                <input type="text" class="question-input-title" value="${card.term.replace(/"/g, '&quot;')}" placeholder="Escribe tu pregunta..." onchange="updateBuilderCard(${qIndex}, 'term', this.value)">
             </div>
             <div class="options-list">
                 ${card.options.map((opt, oIndex) => `
                     <div class="option-row">
                         <input type="radio" name="q-${qIndex}-correct" class="correct-radio" ${opt.isCorrect ? 'checked' : ''} onchange="updateBuilderOption(${qIndex}, ${oIndex}, 'isCorrect', true)" title="Marcar como respuesta correcta">
-                        <input type="text" class="option-input" value="${opt.text}" placeholder="Opción ${oIndex + 1}" onchange="updateBuilderOption(${qIndex}, ${oIndex}, 'text', this.value)">
+                        <input type="text" class="option-input" value="${opt.text.replace(/"/g, '&quot;')}" placeholder="Opción ${oIndex + 1}" onchange="updateBuilderOption(${qIndex}, ${oIndex}, 'text', this.value)">
                         <button class="btn-delete-opt" title="Eliminar opción" onclick="removeBuilderOption(${qIndex}, ${oIndex})">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                         </button>
@@ -1203,11 +1203,11 @@ function renderFlashcardBuilder() {
         row.innerHTML = `
             <div class="flashcard-row-number">${index + 1}</div>
             <div class="flashcard-input-group">
-                <input type="text" class="flashcard-input" placeholder="Término" value="${card.term}" onchange="updateVisualFlashcard(${index}, 'term', this.value)">
+                <input type="text" class="flashcard-input" placeholder="Término" value="${card.term.replace(/"/g, '&quot;')}" onchange="updateVisualFlashcard(${index}, 'term', this.value)">
                 <span class="flashcard-input-label">TÉRMINO</span>
             </div>
             <div class="flashcard-input-group">
-                <input type="text" class="flashcard-input" placeholder="Definición" value="${card.definition}" onchange="updateVisualFlashcard(${index}, 'definition', this.value)">
+                <input type="text" class="flashcard-input" placeholder="Definición" value="${card.definition.replace(/"/g, '&quot;')}" onchange="updateVisualFlashcard(${index}, 'definition', this.value)">
                 <span class="flashcard-input-label">DEFINICIÓN</span>
             </div>
             <button class="btn-delete-row" title="Eliminar ficha" onclick="removeVisualFlashcard(${index})">
